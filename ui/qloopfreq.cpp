@@ -1,5 +1,7 @@
 #include "qloopfreq.hpp"
 
+#include <QDir>
+
 #include <stdexcept>
 #include <iostream>
 #include <set>
@@ -134,12 +136,12 @@ void QLoopFreqWidget::saveTable() {
 }
 
 void QLoopFreqWidget::savePlot() {
-	QString dir = QFileDialog::getExistingDirectory(this, "Save plots");
+	auto dir = QFileDialog::getExistingDirectory(this, "Save plots");
 	if(dir.isEmpty())
 		return;
 	for(auto& cham : mFreqs) {
 		fillPlot(cham.first);
-		plot->savePng(tr("chamber_%1.txt").arg(cham.first), 1000, 1000, 1, 100);
+		plot->savePng(dir + tr("/chamber_%1.png").arg(cham.first+1), 1000, 1000, 1, 100);
 	}
 	setChamberData();
 }
@@ -226,7 +228,7 @@ void QLoopFreqWidget::fillPlot(int chamNum) {
 	QVector<double> xAxis;
 	QVector<double> yAxis;
 
-	for(const auto& codeFreq : chamFreq)
+	for(auto& codeFreq : chamFreq)
 		xAxis.push_back(codeFreq.first);
 	int wire = 0;
 	for(int i = 0; i < 4; ++i) {
