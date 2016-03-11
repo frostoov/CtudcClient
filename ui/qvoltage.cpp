@@ -17,7 +17,7 @@ QVoltageWidget::QVoltageWidget(shared_ptr<VoltageController> controller, QWidget
 	setupPlot(*mSignalPlot, "signal");
 
 	timer = new QTimer(this);
-	timer->setInterval(mFreq);
+	timer->setInterval(mFreq*1000);
 	timer->setSingleShot(false);
 
 	connect(mDriftVolt, &QLineEdit::returnPressed,
