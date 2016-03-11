@@ -69,6 +69,8 @@ MainWindow::MainWindow(std::shared_ptr<CtudcConn> conn, QWidget* parent)
 		else
 			mVoltage->show();
 	});
+
+	refresh();
 }
 
 MainWindow::~MainWindow() {
