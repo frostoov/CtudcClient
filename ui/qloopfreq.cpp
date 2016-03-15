@@ -252,7 +252,7 @@ void QLoopFreqWidget::setChamberData() {
 	}
 	try  {
 		listItemSelTitle = list->currentItem()->text();
-		auto chamNum = listItemSelTitle.toInt();
+		auto chamNum = listItemSelTitle.toInt() - 1;
 		fillTable(chamNum);
 		fillPlot(chamNum);
 	} catch(const std::exception& e) {
