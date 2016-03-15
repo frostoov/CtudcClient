@@ -38,10 +38,14 @@ void QControlWidget::setCtrl() {
 }
 
 void QControlWidget::getCtrl() {
+	disconnect(this, &QTableWidget::itemChanged,
+			   this, &QControlWidget::setCtrl);
 	doAction("TDC set ctrl", [&] {
 		mControl = mController->ctrl();
 		setValues();
 	});
+	connect(this, &QTableWidget::itemChanged,
+			this, &QControlWidget::setCtrl);
 }
 
 void QControlWidget::setValues() {
