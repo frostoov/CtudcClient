@@ -72,8 +72,23 @@ find_package(Qt5Widgets REQUIRED)
 qt5_use_modules(${PROJECT_NAME} Core Gui Widgets PrintSupport)
 
 target_link_libraries(
-		${PROJECT_NAME}
-		pthread
-        qcustomplot
-		${Boost_LIBRARIES}
+    ${PROJECT_NAME}
+    pthread
+    ${Boost_LIBRARIES}
 )
+
+if(UNIX)
+    target_link_libraries(
+	${PROJECT_NAME}
+	qcustomplot
+    )
+endif()
+if(WIN32)
+    target_link_libraries(
+	${PROJECT_NAME}
+	qcustomplot1
+	ws2_32
+	wsock32
+    )
+endif()
+
