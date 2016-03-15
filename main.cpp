@@ -12,8 +12,8 @@ int main(int argc, char* argv[]) {
 		AppConfigParser p;
 		p.load("CtudcClient.conf");
 		auto& c = p.config();
-		conn->connectToHost(QString::fromStdString(c.at("address").get<std::string>()),
-							c.at("port").get<quint16>());
+		conn->connectToHost(c.at("address").get<std::string>(),
+							c.at("port").get<uint16_t>());
 	} catch(std::exception& e) {
 		QMessageBox box;
 		box.setText(e.what());

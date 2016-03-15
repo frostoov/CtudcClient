@@ -33,9 +33,7 @@ void QControlWidget::refresh() {
 void QControlWidget::setCtrl() {
 	getValues();
 	doAction("TDC set ctrl", [&] {
-		if (mController->ctrl() != mControl) {
-			mController->setCtrl(mControl);
-		}
+		mController->setCtrl(mControl);
 	});
 }
 
