@@ -11,6 +11,8 @@
 using std::vector;
 using std::set;
 using std::make_unique;
+using std::setw;
+using std::setfill;
 
 QLoopFreqWidget::QLoopFreqWidget(QWidget* parent)
 	: QWidget(parent) {
@@ -134,16 +136,14 @@ void QLoopFreqWidget::saveTable() {
 		return;
 
 	for(auto& chamPair : mFreqs) {
-		printChamberFreq(chamPair.first, chamPair.second);
+		std::ofstream stream;
+		stream.exceptions(stream.failbit | stream.badbit);
+		stream.open(StringBuilder() << dirname.toStdString() << "/chamber_" << setw(2) << setfill('0') << (chamPair.first + 1) << ".txt");
+		printChamberFreq(stream, chamPair.second);
 	}
 }
 
-void QLoopFreqWidget::printChamberFreq(int chamNum, const ChamFreqSeries& chamFreq) {
-	using std::setw;
-	using std::setfill;
-	std::ofstream stream;
-	stream.exceptions(stream.failbit | stream.badbit);
-	stream.open(StringBuilder() << "chamber_" << setw(2) << setfill('0') << (chamNum + 1) << ".txt");
+void QLoopFreqWidget::printChamberFreq(std::ostream& stream, const ChamFreqSeries& chamFreq) {
 	for(auto& codePair : chamFreq) {
 		stream << codePair.first;
 		for(auto& freq : codePair.second) {
