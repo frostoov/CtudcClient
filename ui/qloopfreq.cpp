@@ -143,7 +143,7 @@ void QLoopFreqWidget::printChamberFreq(int chamNum, const ChamFreqSeries& chamFr
 	using std::setfill;
 	std::ofstream stream;
 	stream.exceptions(stream.failbit | stream.badbit);
-	stream.open(StringBuilder() << "chamber_" << setw(2) << setfill('0') << chamNum << ".txt");
+	stream.open(StringBuilder() << "chamber_" << setw(2) << setfill('0') << (chamNum + 1) << ".txt");
 	for(auto& codePair : chamFreq) {
 		stream << codePair.first;
 		for(auto& freq : codePair.second) {
