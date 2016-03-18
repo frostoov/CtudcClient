@@ -22,9 +22,11 @@ QLoopFreqWidget::QLoopFreqWidget(QWidget* parent)
 	setupPlot();
 
 	connect(saveTableB, &QPushButton::clicked,
-			this,		&QLoopFreqWidget::saveTable);
-	connect(savePlotB,	&QPushButton::clicked,
-			this,		&QLoopFreqWidget::savePlot);
+			this, &QLoopFreqWidget::saveTable);
+	connect(savePlotB, &QPushButton::clicked,
+			this, &QLoopFreqWidget::savePlot);
+	connect(list, &QListWidget::itemSelectionChanged,
+			this, &QLoopFreqWidget::setChamberData);
 }
 
 void QLoopFreqWidget::createWidgets() {
@@ -38,9 +40,6 @@ void QLoopFreqWidget::createWidgets() {
 	chamberL	= new QLabel("Chambers", this);
 	tab->addTab(table, "Table");
 	tab->addTab(plot, "Plot");
-
-	connect(list,	&QListWidget::itemSelectionChanged,
-			this,	&QLoopFreqWidget::setChamberData);
 }
 
 void QLoopFreqWidget::setupTable() {
@@ -77,9 +76,8 @@ void QLoopFreqWidget::createRootItems() {
 		new QTableWidgetItem("Wire 3"),
 		new QTableWidgetItem("Wire 4"),
 	};
-	for(short i = 0; i < 5; ++i) {
+	for(short i = 0; i < 5; ++i)
 		table->setItem(0, i, root[i]);
-	}
 }
 
 void QLoopFreqWidget::packWidgets() {
@@ -136,14 +134,14 @@ void QLoopFreqWidget::saveTable() {
 		return;
 
 	for(auto& chamPair : mFreqs) {
-		std::ofstream stream;
-		stream.exceptions(stream.failbit | stream.badbit);
-		stream.open(StringBuilder() << dirname.toStdString() << "/chamber_" << setw(2) << setfill('0') << (chamPair.first + 1) << ".txt");
+		QFile file(dirname + tr("/chamber_%1.txt").arg(chamPair.first+1));
+		file.open(QFile::WriteOnly | QFile::Text);
+		QTextStream stream(&file);
 		printChamberFreq(stream, chamPair.second);
 	}
 }
 
-void QLoopFreqWidget::printChamberFreq(std::ostream& stream, const ChamFreqSeries& chamFreq) {
+void QLoopFreqWidget::printChamberFreq(QTextStream& stream, const ChamFreqSeries& chamFreq) {
 	for(auto& codePair : chamFreq) {
 		stream << codePair.first;
 		for(auto& freq : codePair.second) {
@@ -155,12 +153,12 @@ void QLoopFreqWidget::printChamberFreq(std::ostream& stream, const ChamFreqSerie
 
 
 void QLoopFreqWidget::savePlot() {
-	auto dir = QFileDialog::getExistingDirectory(this, "Save plots");
-	if(dir.isEmpty())
+	auto dirname = QFileDialog::getExistingDirectory(this, "Save plots");
+	if(dirname.isEmpty())
 		return;
-	for(auto& cham : mFreqs) {
-		fillPlot(cham.first);
-		plot->savePng(dir + tr("/chamber_%1.png").arg(cham.first+1), 1000, 1000, 1, 100);
+	for(auto& chamPair : mFreqs) {
+		fillPlot(chamPair.first);
+		plot->savePng(dirname + tr("/chamber_%1.png").arg(chamPair.first+1), 1000, 1000, 1, 100);
 	}
 	setChamberData();
 }
