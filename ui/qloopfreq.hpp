@@ -34,6 +34,7 @@ public:
 	void resetData();
 protected:
 	virtual void keyPressEvent(QKeyEvent* evt);
+	void printChamberFreq(int chamNum, const ChamFreqSeries& freq);
 	void fillList();
 	void fillPlot(int chamNum);
 	void fillTable(int chamNum);

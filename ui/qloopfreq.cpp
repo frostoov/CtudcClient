@@ -4,7 +4,9 @@
 
 #include <stdexcept>
 #include <iostream>
+#include <fstream>
 #include <set>
+#include <stringbuilder.hpp>
 
 using std::vector;
 using std::set;
@@ -127,13 +129,30 @@ void QLoopFreqWidget::fillList() {
 }
 
 void QLoopFreqWidget::saveTable() {
-	QString tableTitle = QFileDialog::getSaveFileName(this, "Save table", 0, "*.xlsx");
-	if(tableTitle.isEmpty())
+	auto dirname = QFileDialog::getExistingDirectory(this, "Save table");
+	if(dirname.isEmpty())
 		return;
 
-//	QXlsWriter writer;
-//	writer.write(mFreqs, tableTitle);
+	for(auto& chamPair : mFreqs) {
+		printChamberFreq(chamPair.first, chamPair.second);
+	}
 }
+
+void QLoopFreqWidget::printChamberFreq(int chamNum, const ChamFreqSeries& chamFreq) {
+	using std::setw;
+	using std::setfill;
+	std::ofstream stream;
+	stream.exceptions(stream.failbit | stream.badbit);
+	stream.open(StringBuilder() << "chamber_" << setw(2) << setfill('0') << chamNum << ".txt");
+	for(auto& codePair : chamFreq) {
+		stream << codePair.first;
+		for(auto& freq : codePair.second) {
+			stream << '\t' << freq;
+		}
+		stream << '\n';
+	}
+}
+
 
 void QLoopFreqWidget::savePlot() {
 	auto dir = QFileDialog::getExistingDirectory(this, "Save plots");

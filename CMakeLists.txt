@@ -47,6 +47,7 @@ set(HEADERS
     controllers/expocontroller.hpp
     tdc/tdc.hpp
     utils.hpp
+    stringbuilder.hpp
     configparser/configparser.hpp
     configparser/appconfigparser.hpp
 )
@@ -91,4 +92,3 @@ if(WIN32)
 	wsock32
     )
 endif()
-
