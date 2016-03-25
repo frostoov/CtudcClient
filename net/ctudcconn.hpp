@@ -1,23 +1,36 @@
 #pragma once
 
-#include "request.hpp"
-#include "response.hpp"
+#include <trek/net/request.hpp>
+#include <trek/net/response.hpp>
 
 #include <mutex>
+#include <thread>
 #include <boost/asio/ip/tcp.hpp>
 
 class CtudcConn {
+	using Buffer = std::vector<char>;
 	using Socket = boost::asio::ip::tcp::socket;
+	using RecvCallback = std::function<void(const trek::net::Response& response)>;
 public:
 	CtudcConn();
 	CtudcConn(const std::string& hostName, uint16_t port);
-	void connectToHost(const std::string& hostName, uint16_t port);
+	~CtudcConn();
+	void connect(const std::string& hostName, uint16_t port);
 	void disconnect();
-	trek::net::Response send(const trek::net::Request& request);
+	void send(const trek::net::Request& request);
+	void onRecv(const RecvCallback& callback);
+protected:
+	void run();
+	void recv();
 private:
 	boost::asio::io_service mIoService;
 	Socket mSocket;
-	std::mutex mMutex;
-	std::vector<char> mBuffer;
-};
 
+	Buffer mBuffer;
+	uint64_t mMsgSize;
+
+	RecvCallback mOnRecv;
+
+	std::thread mThread;
+	std::mutex mMutex;
+};

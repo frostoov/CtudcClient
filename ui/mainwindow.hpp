@@ -1,6 +1,13 @@
 #pragma once
 
 #include "net/ctudcconn.hpp"
+#include "net/ctudcclient.hpp"
+#include "controllers/tdccontroller.hpp"
+#include "controllers/voltagecontroller.hpp"
+#include "controllers/expocontroller.hpp"
+#include "views/voltageview.hpp"
+#include "views/expoview.hpp"
+#include "views/tdcview.hpp"
 
 #include "qfrequency.hpp"
 #include "qstatus.hpp"
@@ -20,10 +27,6 @@ class MainWindow : public QMainWindow {
 public:
 	MainWindow(std::shared_ptr<CtudcConn> conn, QWidget* parent = nullptr);
 	~MainWindow();
-public slots:
-	void refresh();
-	void startExpo();
-	void stopExpo();
 protected:
 	void setupGUI();
 private:
@@ -31,6 +34,11 @@ private:
 	std::shared_ptr<TdcController> mTdcContr;
 	std::shared_ptr<VoltageController> mVoltContr;
 	std::shared_ptr<ExpoController> mExpoContr;
+
+	CtudcClient mClient;
+	TdcView* mTdcView;
+	VoltageView* mVoltView;
+	ExpoView* mExpoView;
 private:
 	QStatusWidget*    mStatus;
 	QControlWidget*   mControl;
@@ -39,16 +47,11 @@ private:
 	QVoltageWidget* mVoltage;
 
 	QPushButton* mRefresh;
-	QLabel*      mState;
 	QPushButton* mOpen;
-	QPushButton* mClose;
+	QPushButton* mStart;
 	QPushButton* mReset;
 	QPushButton* mClear;
-	QPushButton* mStartExpo;
-	QPushButton* mStopExpo;
+
 	QPushButton* freqB;
 	QPushButton* voltB;
-
-	inline void createOutput();
-	inline void readEvents();
 };

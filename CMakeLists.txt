@@ -11,29 +11,27 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set(SOURCES
-    net/request.cpp
-    net/response.cpp
     net/ctudcconn.cpp
+    net/ctudcclient.cpp
     ui/qconsole.cpp
     ui/qfrequency.cpp
     ui/qsettings.cpp
-    ui/qcontrol.cpp
     ui/qstatus.cpp
     ui/qvoltage.cpp
     ui/mainwindow.cpp
     ui/qloopfreq.cpp
-    controllers/expocontroller.cpp
-    controllers/tdccontroller.cpp
-    controllers/voltagecontroller.cpp
-    utils.cpp
+    ui/qcontrol.cpp
     configparser/appconfigparser.cpp
     main.cpp
+    views/view.cpp
+    views/tdcview.cpp
+    views/expoview.cpp
+    views/voltageview.cpp
 )
 
 set(HEADERS
-    net/request.hpp
-    net/response.hpp
     net/ctudcconn.hpp
+    net/ctudcclient.hpp
     ui/qconsole.hpp
     ui/qvoltage.hpp
     ui/qsettings.hpp
@@ -44,11 +42,13 @@ set(HEADERS
     ui/qloopfreq.hpp
     controllers/tdccontroller.hpp
     controllers/voltagecontroller.hpp
-    controllers/expocontroller.hpp
     tdc/tdc.hpp
-    utils.hpp
     configparser/configparser.hpp
     configparser/appconfigparser.hpp
+    views/view.hpp
+    views/tdcview.hpp
+    views/expoview.hpp
+    views/voltageview.hpp
 )
 
 
@@ -57,7 +57,7 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 set(Boost_USE_STATIC_LIBS ON)
 find_package(
 		Boost
-		1.59.0
+		1.55.0
 		COMPONENTS
 		system
 		REQUIRED
@@ -74,6 +74,7 @@ qt5_use_modules(${PROJECT_NAME} Core Gui Widgets PrintSupport)
 target_link_libraries(
     ${PROJECT_NAME}
     pthread
+    treknet
     ${Boost_LIBRARIES}
 )
 

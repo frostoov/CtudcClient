@@ -1,18 +1,23 @@
 #include "qcontrol.hpp"
-#include "utils.hpp"
+
 
 #include <QVBoxLayout>
 #include <QPushButton>
 #include <QHeaderView>
+#include <QMessageBox>
 
 #include <stdexcept>
 
-
+using std::shared_ptr;
 using std::exception;
 using std::string;
 
-QControlWidget::QControlWidget(std::shared_ptr<TdcController> tdc, QWidget* parent)
-	: QTableWidget(parent), mController(tdc), mControl(0) {
+QControlWidget::QControlWidget(shared_ptr<TdcController> controller,
+	                           TdcView* view,
+	                           QWidget* parent)
+	: QTableWidget(parent),
+	  mController(controller),
+	  mView(view) {
 	setRowCount(11);
 	setColumnCount(2);
 	createItems();
@@ -22,47 +27,42 @@ QControlWidget::QControlWidget(std::shared_ptr<TdcController> tdc, QWidget* pare
 	horizontalHeader()->hide();
 	verticalHeader()->hide();
 
-	connect(this, &QTableWidget::itemChanged,
-			this, &QControlWidget::setCtrl);
-}
-
-void QControlWidget::refresh() {
-	getCtrl();
-}
-
-void QControlWidget::setCtrl() {
-	getValues();
-	doAction("TDC set ctrl", [&] {
-		mController->setCtrl(mControl);
+	auto changeConn = connect(this, &QTableWidget::itemChanged, [this]{
+		mController->setCtrl(readCtrl());
+	});
+	connect(mView, &TdcView::setCtrl, this, [this](auto status){
+		if(!status.isEmpty())
+			QMessageBox::critical(this, "setCtrl", status);
+	});
+	connect(mView, &TdcView::ctrl, this, [this, changeConn](auto status, auto ctrl) mutable {
+		if(!status.isEmpty())
+			QMessageBox::critical(this, "Get Ctrl", status);
+		else {
+			this->disconnect(changeConn);
+			fillTable(ctrl);
+			changeConn = this->connect(this, &QTableWidget::itemChanged, [this]{
+				mController->setCtrl(readCtrl());
+			});
+		}
 	});
 }
 
-void QControlWidget::getCtrl() {
-	disconnect(this, &QTableWidget::itemChanged,
-			   this, &QControlWidget::setCtrl);
-	doAction("TDC set ctrl", [&] {
-		mControl = mController->ctrl();
-		setValues();
-	});
-	connect(this, &QTableWidget::itemChanged,
-			this, &QControlWidget::setCtrl);
-}
-
-void QControlWidget::setValues() {
+void QControlWidget::fillTable(uint16_t ctrl) {
 	for (short i = 0; i < 10; ++i)
-		mItems[i][1]->setText(QString::number(mControl >> i & 1));
-	mItems[10][1]->setText(QString::number((mControl >> 12) & 1));
+		mItems[i][1]->setText(QString::number(ctrl >> i & 1));
+	mItems[10][1]->setText(QString::number((ctrl >> 12) & 1));
 }
 
-void QControlWidget::getValues() {
-	mControl = 0;
-	for (auto i = 0; i < 10; ++i) {
+uint16_t QControlWidget::readCtrl() {
+	uint16_t ctrl = 0;
+	for (int i = 0; i < 10; ++i) {
 		auto item = mItems[i][1]->text().toInt() != 0 ? 1 : 0;
 		if (i != 10)
-			mControl |= item << i;
+			ctrl |= item << i;
 		else
-			mControl |= item << 12;
+			ctrl |= item << 12;
 	}
+	return ctrl;
 }
 
 void QControlWidget::createItems() {

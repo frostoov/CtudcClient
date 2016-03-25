@@ -93,7 +93,7 @@ void QLoopFreqWidget::packWidgets() {
 	setLayout(mainLayout);
 }
 
-void QLoopFreqWidget::addFreq(int volt, const ExpoController::TrekFreq& freq) {
+void QLoopFreqWidget::addFreq(int volt, const ExpoView::TrekFreq& freq) {
 	for(auto& chamFreqPair : freq) {
 		auto  chamNum = chamFreqPair.first;
 		auto& chamFreq = chamFreqPair.second;
@@ -223,7 +223,6 @@ void QLoopFreqWidget::fillTable(int chamNum) {
 
 	int row = 1;
 	for(auto& codeFreq : chamFreq) {
-		std::cout << "setting volt in table: " << codeFreq.first << std::endl;
 		QTableWidgetItem *items[5]{
 			new QTableWidgetItem(QString::number(codeFreq.first)),
 			new QTableWidgetItem(QString::number(codeFreq.second.at(0) )),

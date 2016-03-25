@@ -1,9 +1,10 @@
 #include "tdc/tdc.hpp"
 #include "qsettings.hpp"
 #include "qconsole.hpp"
-#include "utils.hpp"
+
 
 #include <QFormLayout>
+#include <QMessageBox>
 
 #include <stdexcept>
 
@@ -12,23 +13,82 @@ using std::function;
 using std::string;
 using std::shared_ptr;
 
-QSettingsWidget::QSettingsWidget(std::shared_ptr<TdcController> controller, QWidget* parent)
+QSettingsWidget::QSettingsWidget(shared_ptr<TdcController> controller,
+                                 TdcView* view,
+                                 QWidget* parent)
 	: QGroupBox("Settings", parent),
-	  mController(controller) {
+	  mController(controller),
+	  mView(view) {
 	setupGUI();
 
-	connect(mLsb,static_cast<void (QComboBox::*)(int)>(&QComboBox::activated),
-			this, &QSettingsWidget::setLsb);
-	connect(mEdgeDetection, static_cast<void (QComboBox::*)(int)>(&QComboBox::activated),
-			this, &QSettingsWidget::setEdgeDetection);
-	connect(mWinWidth, &QLineEdit::editingFinished,
-			this, &QSettingsWidget::setWindowWidth);
-	connect(mWinOffset, &QLineEdit::editingFinished,
-			this, &QSettingsWidget::setWindowOffset);
-	connect(mMode, &QCheckBox::clicked,
-			this, &QSettingsWidget::setMode);
-	connect(mTdcMeta, &QCheckBox::clicked,
-			this, &QSettingsWidget::setTdcMeta);
+	connect(mLsb,static_cast<void (QComboBox::*)(int)>(&QComboBox::activated), this, [this] {
+		mController->setLsb(mLsb->currentData().toInt());
+	});
+	connect(mEdgeDetection, static_cast<void (QComboBox::*)(int)>(&QComboBox::activated), this, [this] {
+		mController->setEdgeDetection(Tdc::EdgeDetection(mEdgeDetection->currentData().toInt()));
+	});
+	connect(mWinWidth, &QLineEdit::returnPressed, this, [this] {
+		mController->setWindowWidth(mWinWidth->text().toUInt());
+	});
+	connect(mWinOffset, &QLineEdit::returnPressed, this, [this] {
+		mController->setWindowOffset(mWinOffset->text().toInt());
+	});
+	connect(mMode, &QCheckBox::clicked, this, [this] {
+		auto mode = mMode->isChecked() ? Tdc::Mode::trigger : Tdc::Mode::continuous;
+		mController->setMode(mode);
+	});
+	connect(mTdcMeta, &QCheckBox::clicked, this, [this] {
+		mController->setTdcMeta(mTdcMeta->isChecked());
+	});
+
+	connect(mView, &TdcView::settings, this, [this](auto status, auto settings) {
+        if(!status.isEmpty())
+            QMessageBox::critical(this, "Get Settings", status);
+        else {
+            mEdgeDetection->setCurrentIndex(int(settings.edgeDetection));
+    		mWinOffset->setText( QString::number(settings.windowOffset));
+    		mWinWidth->setText(  QString::number(settings.windowWidth) );
+    		mLsb->setCurrentIndex(lsb2index(settings.lsb));
+        }
+	});
+	connect(mView, &TdcView::mode, this, [this](auto status, auto mode) {
+        if(!status.isEmpty())
+            QMessageBox::critical(this, "Get Mode", status);
+        else {
+            mMode->setChecked( mode == Tdc::Mode::trigger );
+        }
+	});
+	connect(mView, &TdcView::tdcMeta, this, [this](auto status, auto flag) {
+        if(!status.isEmpty())
+            QMessageBox::critical(this, "Get Tdc Meta", status);
+        else
+	       mTdcMeta->setChecked(flag);
+	});
+
+    connect(mView, &TdcView::setLsb, this, [this](auto status){
+        if(!status.isEmpty())
+            QMessageBox::critical(this, "setLsb", status);
+    });
+    connect(mView, &TdcView::setEdgeDetection, this, [this](auto status){
+        if(!status.isEmpty())
+            QMessageBox::critical(this, "setEdgeDetection", status);
+    });
+    connect(mView, &TdcView::setTdcMeta, this, [this](auto status){
+        if(!status.isEmpty())
+            QMessageBox::critical(this, "setTdcMeta", status);
+    });
+    connect(mView, &TdcView::setMode, this, [this](auto status){
+        if(!status.isEmpty())
+            QMessageBox::critical(this, "setMode", status);
+    });
+    connect(mView, &TdcView::setWindowWidth, this, [this](auto status){
+        if(!status.isEmpty())
+            QMessageBox::critical(this, "setWindowWidth", status);
+    });
+    connect(mView, &TdcView::setWindowOffset, this, [this](auto status){
+        if(!status.isEmpty())
+            QMessageBox::critical(this, "setWindowOffset", status);
+    });
 }
 
 void QSettingsWidget::setupGUI() {
@@ -67,65 +127,5 @@ int QSettingsWidget::lsb2index(unsigned lsb) {
 		return 2;
 	default:
 		throw std::logic_error("QSettingsWidget::lsb2index invalid value");
-	}
-}
-
-void QSettingsWidget::setLsb() {
-	doAction("TDC set lsb", [&]{
-		mController->setLsb(mLsb->currentData().toInt());
-	});
-}
-
-void QSettingsWidget::setEdgeDetection() {
-	doAction("TDC set edge detection ", [&]{
-		mController->setEdgeDetection(Tdc::EdgeDetection(mEdgeDetection->currentData().toInt()));
-	});
-}
-
-void QSettingsWidget::setWindowOffset() {
-	doAction("TDC set windows offset ", [&]{
-		mController->setWindowOffset(mWinOffset->text().toInt());
-	});
-}
-
-void QSettingsWidget::setWindowWidth() {
-	doAction("TDC set window width", [&]{
-		mController->setWindowWidth(mWinWidth->text().toUInt());
-	});
-}
-
-void QSettingsWidget::setMode() {
-	doAction("TDC set mode", [&]{
-		auto mode = mMode->isChecked() ? Tdc::Mode::trigger : Tdc::Mode::continuous;
-		mController->setMode(mode);
-	});
-}
-
-void QSettingsWidget::setTdcMeta() {
-	doAction("TDC set meta", [&]{
-		mController->setTdcMeta(mTdcMeta->isChecked());
-	});
-}
-
-void QSettingsWidget::refresh() {
-	try {
-		auto settings = mController->settings();
-		mEdgeDetection->setCurrentIndex(int(settings.edgeDetection));
-		mWinOffset->setText( QString::number(settings.windowOffset));
-		mWinWidth->setText(  QString::number(settings.windowWidth) );
-		mLsb->setCurrentIndex(lsb2index(settings.lsb));
-	} catch(exception& e) {
-		console->printWithTime(QString("TDC read settings failed ") +  e.what());
-	}
-
-	try {
-		mMode->setChecked( mController->mode() == Tdc::Mode::trigger );
-	} catch(exception& e) {
-		console->printWithTime(QString("TDC read mode failed ") +  e.what());
-	}
-	try {
-		mTdcMeta->setChecked( mController->tdcMeta());
-	} catch(exception& e) {
-		console->printWithTime(QString("TDC read meta failed ") +  e.what());
 	}
 }

@@ -2,29 +2,40 @@
 
 #include "net/ctudcconn.hpp"
 
-#include <array>
-#include <unordered_map>
-#include <chrono>
-
 class ExpoController {
 public:
-    using ChamberFreq  = std::array<float, 4>;
-    using TrekFreq     = std::unordered_map<unsigned, ChamberFreq>;
-public:
-	ExpoController(std::shared_ptr<CtudcConn> mConn);
+	ExpoController(std::shared_ptr<CtudcConn> conn) : mConn(conn) { }
 
-	std::string type();
-	uintmax_t run();
-	void startRead();
-	void stopRead();
-	void startFreq(int delay);
-	void stopFreq();
-	TrekFreq freq();
-	uintmax_t triggerCount() const;
-	uintmax_t packageCount() const;
-	std::chrono::milliseconds duration() const;
-protected:
-	TrekFreq convertFreq(const trek::net::Request::JsonArray& data);
+	void type() {
+		mConn->send({"expo", __func__});
+	}
+	void run() {
+		mConn->send({"expo", __func__});
+	}
+	void startRead() {
+		mConn->send({"expo", __func__});
+	}
+	void stopRead() {
+		mConn->send({"expo", __func__});
+	}
+	void startFreq(int delay) {
+		mConn->send({"expo", __func__, {delay}});
+	}
+	void stopFreq() {
+		mConn->send({"expo", __func__});
+	}
+	void freq() {
+		mConn->send({"expo", __func__});
+	}
+	void triggerCount() const {
+		mConn->send({"expo", __func__});
+	}
+	void packageCount() const {
+		mConn->send({"expo", __func__});
+	}
+	void duration() const {
+		mConn->send({"expo", __func__});
+	}
 private:
 	std::shared_ptr<CtudcConn> mConn;
 };

@@ -2,6 +2,8 @@
 
 #include "controllers/expocontroller.hpp"
 #include "controllers/voltagecontroller.hpp"
+#include "views/expoview.hpp"
+#include "views/voltageview.hpp"
 
 #include <thread>
 #include <future>
@@ -23,14 +25,22 @@
 class QFrequencyWidget : public QWidget {
 	using ChamberItems = std::array<QTableWidgetItem*, 5>;
 	using TrekItems    = std::vector<ChamberItems>;
+	enum class State {
+		None,
+		Freq,
+		Loop,
+	};
 	Q_OBJECT
 public:
-	QFrequencyWidget(std::shared_ptr<ExpoController> expo,
-					 std::shared_ptr<VoltageController> voltage,
+	QFrequencyWidget(std::shared_ptr<ExpoController> expoContr,
+					 std::shared_ptr<VoltageController> voltContr,
+					 ExpoView* expoView,
+					 VoltageView* voltView,
 					 QWidget* parent = nullptr);
 	~QFrequencyWidget();
 protected:
-	void setFreq(const ExpoController::TrekFreq& freq);
+	void fillFreqTable(const ExpoView::TrekFreq& freq);
+	void launchLoop();
 	void keyPressEvent(QKeyEvent* evt) override;
 private:
 	void createLayouts();
@@ -40,9 +50,12 @@ private:
 	void createItems();
 	void createRootItems();
 private:
-	std::shared_ptr<ExpoController> mExpo;
-	std::shared_ptr<VoltageController> mVoltage;
+	std::shared_ptr<ExpoController> mExpoContr;
+	std::shared_ptr<VoltageController> mVoltContr;
+	ExpoView* mExpoView;
+	VoltageView* mVoltView;
 
+	State mState;
 	std::future<void> mFuture;
 	std::atomic<bool> mLoopActive;
 private:
@@ -50,11 +63,9 @@ private:
 
 	QLoopFreqWidget* loopWidget;
 
-	QPushButton* launchFreqB;
-	QPushButton* stopFreqB;
+	QPushButton* startFreq;
+	QPushButton* startLoop;
 
-	QPushButton* launchLoopB;
-	QPushButton* stopLoopB;
 	QLineEdit* startVolt;
 	QLineEdit* endVolt;
 	QLineEdit* stepVolt;
@@ -65,16 +76,6 @@ private:
 	QVBoxLayout* subLayout;
 	QGroupBox*   loopGroup;
 	QFormLayout* loopLayout;
-protected slots:
-	void launchFreq();
-	void stopFreq();
 
-	void launchLoop();
-	void stopLoop();
-
-	void updateFreq(int volt, ExpoController::TrekFreq freq);
-	void flushLoop(QString msg);
-signals:
-	void freqReady(int volt, ExpoController::TrekFreq freq);
-	void loopDone(QString msg);
+	QMetaObject::Connection mFreqConn;
 };

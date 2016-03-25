@@ -1,6 +1,7 @@
 #pragma once
 
 #include "controllers/expocontroller.hpp"
+#include "views/expoview.hpp"
 
 #include <QWidget>
 #include <QListWidget>
@@ -20,8 +21,8 @@
 #include <unordered_set>
 
 class QLoopFreqWidget : public QWidget {
-	using ChamberFreq    = ExpoController::ChamberFreq;
-	using TrekFreq       = ExpoController::TrekFreq;
+	using ChamberFreq    = ExpoView::ChamberFreq;
+	using TrekFreq       = ExpoView::TrekFreq;
 	using ChamCodeFreq   = std::pair<int, ChamberFreq>;
 	using ChamFreqSeries = std::vector<ChamCodeFreq>;
 	using TrekFreqSeries = std::unordered_map<uintmax_t, ChamFreqSeries>;
@@ -29,7 +30,7 @@ class QLoopFreqWidget : public QWidget {
 	Q_OBJECT
 public:
 	explicit QLoopFreqWidget(QWidget* parent = 0);
-	void addFreq(int volt, const ExpoController::TrekFreq& freq);
+	void addFreq(int volt, const TrekFreq& freq);
 	void updateData();
 	void resetData();
 protected:

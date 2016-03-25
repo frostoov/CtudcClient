@@ -1,6 +1,7 @@
 #pragma once
 
 #include "controllers/voltagecontroller.hpp"
+#include "views/voltageview.hpp"
 
 #include <qcustomplot.h>
 
@@ -10,44 +11,33 @@
 #include <QSplitter>
 #include <QTimer>
 
+#include <QHash>
+
 class QVoltageWidget : public QSplitter {
 	Q_OBJECT
 public:
-	explicit QVoltageWidget(std::shared_ptr<VoltageController> controller, QWidget *parent = nullptr);
+	explicit QVoltageWidget(std::shared_ptr<VoltageController> controller,
+                            VoltageView* view,
+                            QWidget *parent = nullptr);
 protected:
 	void setupGUI();
 	void setupPlot(QCustomPlot& plot, const QString& name);
-protected slots:
-	void setDriftVoltage();
-	void setSignalVoltage();
-	void setDriftSpeedUp();
-	void setDriftSpeedDn();
-	void setSignalSpeedUp();
-	void setSignalSpeedDn();
-	void setDriftState(bool flag);
-	void setSignalState(bool flag);
-	void updateValues();
-	void updatePlot();
+	void createConnections();
+	void updateGraph(QCPGraph& graph, int val);
+	void updateCell(const std::string& type);
 private:
 	std::shared_ptr<VoltageController> mController;
+    VoltageView* mView;
 
-	QLineEdit* mDriftVolt;
-	QLineEdit* mDriftSpeedUp;
-	QLineEdit* mDriftSpeedDn;
-	QCheckBox* mDriftState;
-	QCustomPlot* mDriftPlot;
-
-	QLineEdit* mSignalVolt;
-	QLineEdit* mSignalSpeedUp;
-	QLineEdit* mSignalSpeedDn;
-	QCheckBox* mSignalState;
-	QCustomPlot* mSignalPlot;
+	QHash<QString, QLineEdit*> mVolt;
+	QHash<QString, QLineEdit*> mSpeedUp;
+	QHash<QString, QLineEdit*> mSpeedDn;
+	QHash<QString, QCheckBox*> mState;
+	QHash<QString, QCustomPlot*> mPlot;
 
 	QPushButton* mOpen;
-	QPushButton* mClose;
 	QPushButton* mToggle;
 	QPushButton* mUpdate;
-	QLabel* mIsOpen;
 	int mFreq;
 
 	QTimer* timer;

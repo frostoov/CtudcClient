@@ -1,16 +1,23 @@
 #include "qstatus.hpp"
-#include "utils.hpp"
+
 
 #include <QVBoxLayout>
 #include <QPushButton>
 #include <QHeaderView>
+#include <QMessageBox>
+
 #include <stdexcept>
 
+using std::shared_ptr;
 using std::exception;
 using std::string;
 
-QStatusWidget::QStatusWidget(std::shared_ptr<TdcController> controller, QWidget* parent)
-	: QTableWidget(parent), mController(controller), mStatus(0) {
+QStatusWidget::QStatusWidget(shared_ptr<TdcController> controller,
+                             TdcView* view,
+                             QWidget* parent)
+	: QTableWidget(parent),
+	  mController(controller),
+	  mView(view) {
 	setRowCount(15);
 	setColumnCount(2);
 	createItems();
@@ -19,13 +26,12 @@ QStatusWidget::QStatusWidget(std::shared_ptr<TdcController> controller, QWidget*
 	verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 	horizontalHeader()->hide();
 	verticalHeader()->hide();
-}
 
-
-void QStatusWidget::refresh() {
-	doAction("TDC get stat", [&]{
-		mStatus = mController->stat();
-		setValues();
+	connect(mView, &TdcView::stat, this, [this](auto status, auto stat) {
+        if(!status.isEmpty())
+            QMessageBox::critical(this, "Get Status", status);
+        else
+            fillTable(stat);
 	});
 }
 
@@ -54,13 +60,13 @@ void QStatusWidget::createItems() {
 	}
 }
 
-void QStatusWidget::setValues() {
+void QStatusWidget::fillTable(uint16_t stat) {
 	for(int i = 0; i < 15; ++i) {
 		if(i != 13) {
 			if(i != 12)
-				mItems[i][1]->setText( QString::number( ((mStatus >> i) & 1)) );
+				mItems[i][1]->setText( QString::number( ((stat >> i) & 1)) );
 			else
-				mItems[i][1]->setText(QString::number( ((mStatus >> i) & 3)) );
+				mItems[i][1]->setText(QString::number( ((stat >> i) & 3)) );
 		}
 	}
 }

@@ -12,6 +12,9 @@
 using trek::net::Request;
 using trek::net::Response;
 
+using boost::asio::async_read;
+using boost::asio::async_write;
+
 using std::runtime_error;
 using std::string;
 using std::lock_guard;
@@ -23,42 +26,76 @@ namespace asio = boost::asio;
 
 
 CtudcConn::CtudcConn()
-	: mSocket(mIoService) { }
+	: mSocket(mIoService) {
+
+}
 
 CtudcConn::CtudcConn(const string& hostName, uint16_t port)
 	: mSocket(mIoService) {
-	connectToHost(hostName, port);
+	connect(hostName, port);
 }
 
-void CtudcConn::connectToHost(const string& hostName, uint16_t port) {
+CtudcConn::~CtudcConn() {
+	disconnect();
+}
+
+void CtudcConn::connect(const string& hostName, uint16_t port) {
 	auto addr = asio::ip::address::from_string(hostName);
 	asio::ip::tcp::endpoint ep(addr, port);
 	mSocket.connect(ep);
+	run();
 }
 
 void CtudcConn::disconnect() {
-	mSocket.shutdown(asio::socket_base::shutdown_both);
-	mSocket.close();
+	mSocket.cancel();
+	mSocket.shutdown(mSocket.shutdown_both);
+	mIoService.stop();
+	if(mThread.joinable())
+		mThread.join();
 }
 
-Response CtudcConn::send(const Request& request) {
-	auto rawRequest = std::string(request);
+void CtudcConn::run() {
+	recv();
+	mIoService.reset();
+	mThread = std::thread([this]{
+		mIoService.run();
+	});
+}
+
+void CtudcConn::recv() {
+	async_read(mSocket, asio::buffer(&mMsgSize, sizeof(mMsgSize)), [this](auto& errCode, auto l) {
+		if(errCode || l != sizeof(mMsgSize)) {
+			std::cout << "Failed recv msg: " << errCode << ". restart app please"<< std::endl;
+			return;
+		}
+		mBuffer.resize(mMsgSize);
+		async_read(mSocket, asio::buffer(mBuffer),[this] (auto& errCode, auto l) {
+			if(errCode || mBuffer.size() != l) {
+				std::cout << "Failed recv msg: " << errCode << ". restart app please"<< std::endl;
+				return;
+			}
+			auto msg = std::string(mBuffer.data(), mBuffer.size());
+			std::cout << "Recv: " << msg << std::endl;
+			mOnRecv(Response(msg));
+			recv();
+		});
+	});
+}
+
+void CtudcConn::send(const Request& request) {
+	auto rawRequest = string(request);
 	uint64_t length = rawRequest.size();
-	lock_guard<mutex> lock(mMutex);
+	std::ostringstream stream;
+	stream.write(reinterpret_cast<char*>(&length), sizeof(length));
+	stream << rawRequest;
+	async_write(mSocket, asio::buffer(stream.str()), [this, rawRequest](auto& errCode, auto) {
+		if(errCode) {
+			std::cout << "Failed send msg: " << errCode << ". restart app please"<< std::endl;
+		}
+		//TODO
+	});
+}
 
-	asio::write(mSocket, asio::buffer(&length, sizeof(length)));
-	asio::write(mSocket, asio::buffer(rawRequest.data(), rawRequest.size()));
-	std::cout << system_clock::now() << " Send: " << rawRequest << std::endl;
-	asio::read(mSocket, asio::buffer(&length, sizeof(length)));
-	mBuffer.resize(length);
-	asio::read(mSocket, asio::buffer(mBuffer));
-	auto rawResponse = string(mBuffer.data(), mBuffer.size());
-	std::cout << system_clock::now() << " Recv: " << rawResponse << std::endl;
-	auto response = Response(rawResponse);
-
-	if(!response.status)
-		throw runtime_error(response.outputs.at(0).get<string>());
-	if(response.object != request.object || response.method != request.method)
-		throw runtime_error("CtudcClient::send invlide response");
-	return response;
+void CtudcConn::onRecv(const RecvCallback& callback) {
+	mOnRecv = callback;
 }
