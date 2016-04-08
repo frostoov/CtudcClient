@@ -3,6 +3,7 @@ project(CtudcClient)
 
 set( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -pedantic")
 include_directories(${PROJECT_SOURCE_DIR})
+add_definitions(-DQCUSTOMPLOT_USE_LIBRARY )
 
 # Tell CMake to run moc when necessary:
 set(CMAKE_AUTOMOC ON)
@@ -60,11 +61,11 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 
 set(Boost_USE_STATIC_LIBS ON)
 find_package(
-		Boost
-		1.55.0
-		COMPONENTS
-		system
-		REQUIRED
+	Boost
+	1.55.
+	COMPONENTS
+	system
+	REQUIRED
 )
 include_directories(${Boost_INCLUDE_DIRS})
 
@@ -88,6 +89,7 @@ if(UNIX)
 	qcustomplot
     )
 endif()
+
 if(WIN32)
     target_link_libraries(
 	${PROJECT_NAME}

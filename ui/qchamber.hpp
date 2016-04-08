@@ -9,24 +9,24 @@
 #include <QTableWidget>
 
 class QChamberMonitor : public QSplitter {
-    Q_OBJECT
+	Q_OBJECT
 public:
-    QChamberMonitor(const QString& name, QWidget* parent = nullptr);
-    void addFreq(const ExpoView::ChamberFreq& freq);
-    void setCount(const ExpoView::ChamberFreq& count);
-    void reset();
-    void setTick(int tick) { mTick = tick; }
+	QChamberMonitor(const QString& name, QWidget* parent = nullptr);
+	void addFreq(const ExpoView::ChamberFreq& freq);
+	void setCount(const ExpoView::ChamberFreq& count);
+	void reset();
+	void setTick(int tick) { mTick = tick; }
 protected:
-    void mousePressEvent(QMouseEvent*) override;
-    void setupGUI();
-    void updateGraph(QCPGraph& graph, double val);
-    QCustomPlot* setupPlot();
+	void mouseDoubleClickEvent(QMouseEvent*) override;
+	void setupGUI();
+	void updateGraph(QCPGraph& graph, double val);
+	QCustomPlot* setupPlot();
 private:
-    QCustomPlot* mPlot;
-    QString mName;
-    int mTick;
+	QCustomPlot* mPlot;
+	QString mName;
+	int mTick;
 
-    QLineEdit* mWireCount[4];
+	QLineEdit* mWireCount[4];
 signals:
-    void clicked();
+	void mouseDoubleClick();
 };
