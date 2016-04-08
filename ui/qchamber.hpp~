@@ -1,0 +1,31 @@
+#pragma once
+
+#include "views/expoview.hpp"
+
+#include <qcustomplot.h>
+
+#include <QSplitter>
+#include <QLineEdit>
+#include <QTableWidget>
+
+class QChamberMonitor : public QSplitter {
+    Q_OBJECT
+public:
+    QChamberMonitor(const QString& name, QWidget* parent = nullptr);
+    void addFreq(const ExpoView::ChamberFreq& freq, const ExpoView::ChamberFreq& drop);
+    void setCount(const ExpoView::ChamberFreq& count, const ExpoView::ChamberFreq& drop);
+    void reset();
+protected:
+    void mousePressEvent(QMouseEvent*) override;
+    void setupGUI();
+    void updateGraph(QCPGraph& graph, double val);
+    QCustomPlot* setupPlot();
+        
+private:
+    QCustomPlot* mPlot;
+    QString mName;
+
+    QLineEdit* mWireCount[4];
+signals:
+    void clicked();
+};

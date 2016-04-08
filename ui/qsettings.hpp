@@ -11,21 +11,21 @@
 
 class QSettingsWidget : public QGroupBox {
 public:
-	explicit QSettingsWidget(std::shared_ptr<TdcController> controller,
+    explicit QSettingsWidget(std::shared_ptr<TdcController> controller,
                              TdcView* view,
-							 QWidget* parent = nullptr);
+                             QWidget* parent = nullptr);
 protected:
-	void setupGUI();
-	static int lsb2index(unsigned lsb);
+    void setupGUI();
+    static int lsb2index(unsigned lsb);
 private:
-	std::shared_ptr<TdcController> mController;
-	TdcView*       mView;
+    std::shared_ptr<TdcController> mController;
+    TdcView*       mView;
 
-	QCheckBox*   mMode;
-	QCheckBox*   mTdcMeta;
+    QCheckBox*   mMode;
+    QCheckBox*   mTdcMeta;
 
-	QComboBox* mLsb;
-	QComboBox* mEdgeDetection;
-	QLineEdit* mWinWidth;
-	QLineEdit* mWinOffset;
+    QComboBox* mLsb;
+    QComboBox* mEdgeDetection;
+    QLineEdit* mWinWidth;
+    QLineEdit* mWinOffset;
 };

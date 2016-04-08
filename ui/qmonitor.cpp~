@@ -1,0 +1,229 @@
+#include "qmonitor.hpp"
+
+#include <trek/common/timeprint.hpp>
+
+#include <QGridLayout>
+#include <QVBoxLayout>
+#include <QSizePolicy>
+
+using std::shared_ptr;
+
+QMonitor::QMonitor(std::shared_ptr<ExpoController> expoContr,
+                   ExpoView* expoView,
+                   QWidget *parent)
+    : QSplitter(parent),
+      mExpoContr(expoContr),
+      mExpoView(expoView),
+      mTriggerCount(-1),
+      mPackageCount(-1) {
+    setupGUI();
+
+    mTimer = new QTimer(this);
+    mTimer->setInterval(mFreq->text().toInt() * 1000);
+    mTimer->setSingleShot(false);
+
+    createConnections();
+}
+
+void setTab(QTabWidget& tab, int index, QWidget* widget) {
+    tab.removeTab(index);
+    tab.insertTab(index, widget, "chambers");
+}
+
+void QMonitor::setupGUI() {
+    auto ctrlLayout = new QVBoxLayout;
+
+    mToggle = new QPushButton("Start");
+    mFreq   = new QLineEdit("30");
+    auto actionLayout = new QFormLayout;
+    actionLayout->addRow(mToggle);
+    actionLayout->addRow("Frequency", mFreq);
+    auto actionGroup = new QGroupBox("Actions");
+    actionGroup->setLayout(actionLayout);
+
+    mCurrentRun = new QLineEdit("-");
+    mCurrentRun->setReadOnly(true);
+    mType = new QLineEdit("idle");
+    mType->setReadOnly(true);
+    auto statLayout = new QFormLayout;
+    statLayout->addRow("Type",mType);
+    statLayout->addRow("Run", mCurrentRun);
+    auto statGroup = new QGroupBox("Status");
+    statGroup->setLayout(statLayout);
+
+    ctrlLayout->addWidget(actionGroup);
+    ctrlLayout->addWidget(statGroup);
+
+    mPlot = makePlot();
+
+    auto chambersLayout = new QGridLayout;
+    for(int i = 0; i < 16; ++i) {
+        mChambers[i] = new QChamberMonitor(tr("Chamber %1").arg(i + 1));
+        chambersLayout->addWidget(mChambers[i], i%4, 4 - i/4);
+        
+        connect(mChambers[i], &QChamberMonitor::clicked, this, [this, i] {
+            static bool flag = true;
+            if(flag) {
+                for(auto& c : mChambers) c->hide();
+                mChambers[i]->show();
+                flag = !flag;
+            } else {
+                for(auto& c : mChambers) c->show();
+                flag = !flag;
+            }
+        });
+    }
+    auto chambersWidget = new QWidget;
+    chambersWidget->setLayout(chambersLayout);
+
+    auto tab = new QTabWidget;
+    tab->addTab( mPlot, "main" );
+    tab->addTab(chambersWidget, "chambers");
+
+    auto ctrlWidget = new QWidget;
+    ctrlWidget->setLayout(ctrlLayout);
+
+    setOrientation(Qt::Horizontal);
+    addWidget(ctrlWidget);
+    addWidget(tab);
+    setStretchFactor(1, 5);
+}
+
+
+QCustomPlot* QMonitor::makePlot() {
+    auto* plot = new QCustomPlot;
+    plot->xAxis->setTickLabelType(QCPAxis::ltDateTime);
+    plot->xAxis->setDateTimeFormat("hh:mm:ss");
+    plot->xAxis->setAutoTickStep(false);
+    plot->xAxis->setTickStep(3);
+    plot->legend->setVisible(true);
+    plot->yAxis->setLabel("Trigger freq");
+    plot->yAxis2->setLabel("Pacakge freq");
+    plot->yAxis2->setVisible(true);
+    {
+        // Trigger
+        plot->addGraph(plot->xAxis, plot->yAxis);
+
+        QBrush brush(Qt::red);
+        QPen pen(Qt::red);
+        pen.setWidth(2);
+        pen.setStyle(Qt::PenStyle::SolidLine);
+
+        plot->graph(0)->setName("Trigger freq");
+        plot->graph(0)->setPen(pen);
+        plot->graph(0)->setLineStyle(QCPGraph::lsLine);
+        plot->graph(0)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, 6));
+    }
+
+    {
+        // Package
+        plot->addGraph(plot->xAxis, plot->yAxis2);
+
+        QBrush brush(Qt::blue);
+        QPen pen(Qt::blue);
+        pen.setWidth(2);
+        pen.setStyle(Qt::DotLine);
+
+        plot->graph(1)->setName("Package freq");
+        plot->graph(1)->setPen(pen);
+        plot->graph(1)->setLineStyle(QCPGraph::lsLine);
+        plot->graph(1)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, 6));
+    }
+    return plot;
+}
+
+void QMonitor::createConnections() {
+    connect(mFreq, &QLineEdit::editingFinished, [this]{
+        mFreq->setText( QString::number(mFreq->text().toInt()) );
+        if(mTimer->interval() != mFreq->text().toInt()) {
+            mTimer->setInterval(mFreq->text().toInt() * 1000);
+            mPlot->xAxis->setTickStep(4 * mFreq->text().toInt());
+            mTriggerCount = -1;
+            mPackageCount = -1;
+            if(mTimer->isActive()) mTimer->start();
+        }
+    });
+    connect(mToggle, &QPushButton::clicked, [this]{
+        if(mToggle->text() == "Start") {
+            mToggle->setText("Stop");
+            mTimer->start();
+        } else {
+            mToggle->setText("Start");
+            mTimer->stop();
+        }
+    });
+    connect(mTimer, &QTimer::timeout, [this]{
+        mExpoContr->triggerCount();
+        mExpoContr->packageCount();
+        mExpoContr->chambersCount();
+    });
+
+
+    connect(mExpoView, &ExpoView::type, [this](auto status, auto type) {
+        if(status.isEmpty()) {
+            mType->setText(type);
+            mToggle->setEnabled(type == "expo");
+            if(type != "read") {
+                mToggle->setText("Start");
+                mTimer->stop();
+            }
+        }
+    });
+    connect(mExpoView, &ExpoView::run, this, [this](auto status, auto run) {
+        if(status.isEmpty()){
+            mCurrentRun->setText(QString::number(run));
+        }
+    });
+    connect(mExpoView, &ExpoView::triggerCount, this, [this](auto status, auto count, auto drop){
+        if(status.isEmpty()) {
+            if(mTriggerCount != -1) {
+                auto freq = (count - mTriggerCount)/mFreq->text().toInt();
+                updateGraph(*mPlot->graph(0), freq);
+                mPlot->replot();
+            }
+            mTriggerCount = count;
+        }
+    });
+    connect(mExpoView, &ExpoView::packageCount, this, [this](auto status, auto count, auto drop){
+        if(status.isEmpty()) {
+            if(mPackageCount != -1) {
+                auto freq = (count - mPackageCount)/mFreq->text().toInt();
+                updateGraph(*mPlot->graph(1), freq);
+                mPlot->replot();
+            }
+            mPackageCount = count;
+        }
+    });
+    connect(mExpoView, &ExpoView::chambersCount, this, [this](auto status, auto count, auto drop) {
+        if(status.isEmpty()) {
+            if(mChambersCount != nullptr) {
+                for(auto& c : convertTrekCount(count, mFreq->text().toInt()))
+                    mChambers[c.first]->addFreq(c.second, c.second);
+                *mChambersCount = count;
+            } else {
+                mChambersCount = std::make_unique<ExpoView::TrekFreq>(count);
+            }
+            
+        }
+    });
+}
+
+void QMonitor::updateGraph(QCPGraph& graph, int val) {
+    double key = QDateTime::currentDateTime().toMSecsSinceEpoch() / 1000.0;
+    graph.addData(key, val);
+    graph.removeDataBefore(key - 50 * mFreq->text().toInt());
+    graph.rescaleAxes();
+}
+
+ExpoView::ChamberFreq QMonitor::convertChamberCount(const ExpoView::ChamberFreq& count, int sec) {
+    ExpoView::ChamberFreq freq{{0, 0, 0, 0}};
+    std::transform(count.begin(), count.end(), freq.begin(), [sec](auto v){return v/sec;});
+    return freq;
+}
+
+ExpoView::TrekFreq QMonitor::convertTrekCount(const ExpoView::TrekFreq& count, int sec) {
+    ExpoView::TrekFreq freq;
+    for(auto& c : count)
+        freq.emplace(c.first, convertChamberCount(c.second, sec));
+    return freq;
+}

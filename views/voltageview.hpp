@@ -3,9 +3,9 @@
 #include "view.hpp"
 
 class VoltageView : public View {
-	Q_OBJECT
+    Q_OBJECT
 public:
-	class Stat {
+    class Stat {
     public:
         explicit Stat(uint8_t stat = 0) : mStat(stat) {}
         bool ceb() const   { return (mStat >> 0) & 1; }

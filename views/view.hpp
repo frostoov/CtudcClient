@@ -9,7 +9,7 @@
 class View : public QObject {
 public:
     using Method = std::function<void(const trek::net::Response&)>;
-	using Methods = std::unordered_map<std::string, Method>;
+    using Methods = std::unordered_map<std::string, Method>;
 public:
     void handleReponse(const trek::net::Response& response);
     const std::string& name() const;

@@ -7,14 +7,14 @@
 
 class QStatusWidget : public QTableWidget {
 public:
-	explicit QStatusWidget(std::shared_ptr<TdcController> controller,
+    explicit QStatusWidget(std::shared_ptr<TdcController> controller,
                            TdcView* view,
                            QWidget* parent = nullptr);
 protected:
-	void fillTable(uint16_t stat);
-	void createItems();
+    void fillTable(uint16_t stat);
+    void createItems();
 private:
-	std::shared_ptr<TdcController> mController;
-	TdcView* mView;
-	QTableWidgetItem*   mItems[15][2];
+    std::shared_ptr<TdcController> mController;
+    TdcView* mView;
+    QTableWidgetItem*   mItems[15][2];
 };

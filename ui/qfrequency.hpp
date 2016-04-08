@@ -23,59 +23,60 @@
 #include "qloopfreq.hpp"
 
 class QFrequencyWidget : public QWidget {
-	using ChamberItems = std::array<QTableWidgetItem*, 5>;
-	using TrekItems    = std::vector<ChamberItems>;
-	enum class State {
-		None,
-		Freq,
-		Loop,
-	};
-	Q_OBJECT
+    using ChamberItems = std::array<QTableWidgetItem*, 5>;
+    using TrekItems    = std::vector<ChamberItems>;
+    enum class State {
+        None,
+        Freq,
+        Loop,
+    };
+    Q_OBJECT
 public:
-	QFrequencyWidget(std::shared_ptr<ExpoController> expoContr,
-					 std::shared_ptr<VoltageController> voltContr,
-					 ExpoView* expoView,
-					 VoltageView* voltView,
-					 QWidget* parent = nullptr);
-	~QFrequencyWidget();
+    QFrequencyWidget(std::shared_ptr<ExpoController> expoContr,
+                     std::shared_ptr<VoltageController> voltContr,
+                     ExpoView* expoView,
+                     VoltageView* voltView,
+                     QWidget* parent = nullptr);
+    ~QFrequencyWidget();
 protected:
-	void fillFreqTable(const ExpoView::TrekFreq& freq);
-	void launchLoop();
-	void keyPressEvent(QKeyEvent* evt) override;
+    void fillFreqTable(const ExpoView::TrekFreq& freq);
+    void launchLoop();
+    void keyPressEvent(QKeyEvent* evt) override;
 private:
-	void createLayouts();
-	void createWidgets();
-	void packWidgets();
-	void setupTable();
-	void createItems();
-	void createRootItems();
+    void createLayouts();
+    void createWidgets();
+    void packWidgets();
+    void setupTable();
+    void createItems();
+    void createRootItems();
 private:
-	std::shared_ptr<ExpoController> mExpoContr;
-	std::shared_ptr<VoltageController> mVoltContr;
-	ExpoView* mExpoView;
-	VoltageView* mVoltView;
+    std::shared_ptr<ExpoController> mExpoContr;
+    std::shared_ptr<VoltageController> mVoltContr;
+    ExpoView* mExpoView;
+    VoltageView* mVoltView;
 
-	State mState;
-	std::future<void> mFuture;
-	std::atomic<bool> mLoopActive;
+    State mState;
+    std::future<void> mFuture;
+    std::atomic<bool> mLoopActive;
 private:
-	QTableWidget* table;
+    QTableWidget* table;
 
-	QLoopFreqWidget* loopWidget;
+    QLoopFreqWidget* loopWidget;
 
-	QPushButton* startFreq;
-	QPushButton* startLoop;
+    QPushButton* launchFreq;
+    QPushButton* startLoop;
 
-	QLineEdit* startVolt;
-	QLineEdit* endVolt;
-	QLineEdit* stepVolt;
-	QLineEdit* timerL;
+    QLineEdit* startVolt;
+    QLineEdit* endVolt;
+    QLineEdit* stepVolt;
+    QLineEdit* timerL;
+    QLineEdit* voltCD;
 
-	QTabWidget* tabWidget;
-	QHBoxLayout* mainLayout;
-	QVBoxLayout* subLayout;
-	QGroupBox*   loopGroup;
-	QFormLayout* loopLayout;
+    QTabWidget* tabWidget;
+    QHBoxLayout* mainLayout;
+    QVBoxLayout* subLayout;
+    QGroupBox*   loopGroup;
+    QFormLayout* loopLayout;
 
-	QMetaObject::Connection mFreqConn;
+    QMetaObject::Connection mFreqConn;
 };

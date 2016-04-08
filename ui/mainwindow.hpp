@@ -15,6 +15,7 @@
 #include "qsettings.hpp"
 #include "qconsole.hpp"
 #include "qvoltage.hpp"
+#include "qmonitor.hpp"
 
 #include <QMainWindow>
 #include <QLabel>
@@ -23,35 +24,39 @@
 #include <memory>
 
 class MainWindow : public QMainWindow {
-	Q_OBJECT
+    Q_OBJECT
 public:
-	MainWindow(std::shared_ptr<CtudcConn> conn, QWidget* parent = nullptr);
-	~MainWindow();
+    MainWindow(std::shared_ptr<CtudcConn> conn, QWidget* parent = nullptr);
+    ~MainWindow();
 protected:
-	void setupGUI();
+    void setupGUI();
 private:
-	std::shared_ptr<CtudcConn> mConn;
-	std::shared_ptr<TdcController> mTdcContr;
-	std::shared_ptr<VoltageController> mVoltContr;
-	std::shared_ptr<ExpoController> mExpoContr;
+    std::shared_ptr<CtudcConn> mConn;
+    std::shared_ptr<TdcController> mTdcContr;
+    std::shared_ptr<VoltageController> mVoltContr;
+    std::shared_ptr<ExpoController> mExpoContr;
 
-	CtudcClient mClient;
-	TdcView* mTdcView;
-	VoltageView* mVoltView;
-	ExpoView* mExpoView;
+    CtudcClient mClient;
+    TdcView* mTdcView;
+    VoltageView* mVoltView;
+    ExpoView* mExpoView;
 private:
-	QStatusWidget*    mStatus;
-	QControlWidget*   mControl;
-	QSettingsWidget*  mSettings;
-	QFrequencyWidget* mFrequency;
-	QVoltageWidget* mVoltage;
+    QStatusWidget*    mStatus;
+    QControlWidget*   mControl;
+    QSettingsWidget*  mSettings;
+    QFrequencyWidget* mFrequency;
+    QVoltageWidget* mVoltage;
+    QMonitor* mMonitor;
 
-	QPushButton* mRefresh;
-	QPushButton* mOpen;
-	QPushButton* mStart;
-	QPushButton* mReset;
-	QPushButton* mClear;
+    QPushButton* mRefresh;
+    QPushButton* mOpen;
+    QPushButton* mStart;
+    QPushButton* mReset;
+    QPushButton* mClear;
 
-	QPushButton* freqB;
-	QPushButton* voltB;
+    QPushButton* freqB;
+    QPushButton* voltB;
+    QPushButton* monitB;
+signals:
+    void serverFail(QString obj, QString method, QString status);
 };
