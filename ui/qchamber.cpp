@@ -8,14 +8,23 @@ QChamberMonitor::QChamberMonitor(const QString& name, QWidget* parent)
 	connect(mPlot, &QCustomPlot::mouseDoubleClick, this, [this](QMouseEvent *event){
 		emit this->mouseDoubleClick();
 	});
+	connect(mPlot, &QCustomPlot::mousePress, this, [this](QMouseEvent* event) {
+		if(event->button() == Qt::RightButton) {
+			mPlot->legend->setVisible(!mPlot->legend->visible());
+			mPlot->replot();
+		}
+	});
 }
 
 void QChamberMonitor::addFreq(const ExpoView::ChamberFreq& freq) {
 	for(size_t i = 0; i < freq.size(); ++i) {
 		updateGraph(*mPlot->graph(i), freq.at(i));
 	}
+	mPlot->xAxis->rescale(true);
+	mPlot->yAxis->rescale(true);
 	mPlot->replot();
 }
+
 void QChamberMonitor::setCount(const ExpoView::ChamberFreq& count) {
 	// for(int row = 0; row < count.size(); ++row) {
 	//    mWireCount[row]->setText(tr("%1 | %2").arg(count[row]).arg(drop[row]));
@@ -23,6 +32,11 @@ void QChamberMonitor::setCount(const ExpoView::ChamberFreq& count) {
 }
 void QChamberMonitor::reset() {
 	//TODO?
+}
+
+void QChamberMonitor::setTick(int tick) {
+	mTick = tick;
+	mPlot->xAxis->setTickStep(4 * tick);
 }
 
 void QChamberMonitor::setupGUI() {
@@ -46,8 +60,7 @@ QCustomPlot* QChamberMonitor::setupPlot() {
 	auto plot = new QCustomPlot;
 	plot->xAxis->setTickLabelType(QCPAxis::ltDateTime);
 	plot->xAxis->setDateTimeFormat("hh:mm:ss");
-	plot->xAxis->setAutoTickStep(true);
-	plot->legend->setVisible(true);
+	plot->xAxis->setAutoTickStep(false);
 
 	plot->plotLayout()->insertRow(0);
 	auto plotTitle = new QCPPlotTitle(plot, mName);
@@ -75,7 +88,6 @@ void QChamberMonitor::updateGraph( QCPGraph &graph, double val) {
 	auto key = double(QDateTime::currentMSecsSinceEpoch()) / 1000;
 	graph.addData(key, val);
 	graph.removeDataBefore(key - 50*mTick);
-	graph.rescaleAxes();
 }
 
 void QChamberMonitor::mouseDoubleClickEvent(QMouseEvent*) {

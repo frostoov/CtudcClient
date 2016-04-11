@@ -21,6 +21,7 @@ QMonitor::QMonitor(std::shared_ptr<ExpoController> expoContr,
 	mTimer->setInterval(mTick->text().toInt() * 1000);
 	mTimer->setSingleShot(false);
 	for(auto& c : mChambers) c->setTick(mTick->text().toInt());
+	mPlot->xAxis->setTickStep(mTick->text().toInt());
 
 	createConnections();
 	resize(800, 600);
@@ -143,8 +144,9 @@ void QMonitor::createConnections() {
 	connect(mTick, &QLineEdit::editingFinished, [this]{
 		auto tick = (mTick->text().toInt() > 0) ? mTick->text().toInt() : 1;
 		mTick->setText( QString::number(tick) );
-		if(mTimer->interval() != tick) {
+		if(mTimer->interval() != tick * 1000) {
 			mTimer->setInterval(tick * 1000);
+			mPlot->xAxis->setTickStep(4*tick);
 			for(auto& c : mChambers) c->setTick(tick);
 			for(auto& t : mTriggerCount) t.reset();
 			for(auto& p : mPackageCount) p.reset();

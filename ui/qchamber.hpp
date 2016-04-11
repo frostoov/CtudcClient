@@ -15,7 +15,7 @@ public:
 	void addFreq(const ExpoView::ChamberFreq& freq);
 	void setCount(const ExpoView::ChamberFreq& count);
 	void reset();
-	void setTick(int tick) { mTick = tick; }
+	void setTick(int tick);
 protected:
 	void mouseDoubleClickEvent(QMouseEvent*) override;
 	void setupGUI();
