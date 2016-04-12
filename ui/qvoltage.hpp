@@ -14,31 +14,32 @@
 #include <QHash>
 
 class QVoltageWidget : public QSplitter {
-	Q_OBJECT
+    Q_OBJECT
 public:
-	explicit QVoltageWidget(std::shared_ptr<VoltageController> controller,
-							VoltageView* view,
-							QWidget* parent = nullptr);
+    explicit QVoltageWidget(std::shared_ptr<VoltageController> controller,
+                            VoltageView* view,
+                            QWidget* parent = nullptr);
 protected:
-	void setupGUI();
-	void setupPlot(QCustomPlot& plot, const QString& name);
-	void createConnections();
-	void updateGraph(QCPGraph& graph, int val);
-	void updateCell(const std::string& type);
+    void setupGUI();
+    void setupPlot(QCustomPlot& plot, const QString& name);
+    void createConnections();
+    void updateGraph(QCPGraph& graph, int val);
+    void updateCell(const std::string& type);
 private:
-	std::shared_ptr<VoltageController> mController;
-	VoltageView* mView;
+    std::shared_ptr<VoltageController> mController;
+    VoltageView* mView;
 
-	QHash<QString, QLineEdit*> mVolt;
-	QHash<QString, QLineEdit*> mSpeedUp;
-	QHash<QString, QLineEdit*> mSpeedDn;
-	QHash<QString, QCheckBox*> mState;
-	QHash<QString, QCustomPlot*> mPlot;
+    QHash<QString, QLineEdit*> mVolt;
+    QHash<QString, QLineEdit*> mStatus;
+    QHash<QString, QLineEdit*> mSpeedUp;
+    QHash<QString, QLineEdit*> mSpeedDn;
+    QHash<QString, QCheckBox*> mState;
+    QHash<QString, QCustomPlot*> mPlot;
 
-	QPushButton* mOpen;
-	QPushButton* mToggle;
-	QPushButton* mUpdate;
-	int mFreq;
+    QPushButton* mOpen;
+    QPushButton* mToggle;
+    QPushButton* mUpdate;
+    int mFreq;
 
-	QTimer* timer;
+    QTimer* timer;
 };

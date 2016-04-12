@@ -23,7 +23,8 @@ set(SOURCES
     ui/qloopfreq.cpp
     ui/qcontrol.cpp
     ui/qmonitor.cpp
-    ui/qchamber.cpp
+    ui/qchambermonitor.cpp
+    ui/qchambertable.cpp
     configparser/appconfigparser.cpp
     main.cpp
     views/view.cpp
@@ -44,7 +45,8 @@ set(HEADERS
     ui/qstatus.hpp
     ui/qloopfreq.hpp
     ui/qmonitor.hpp
-    ui/qchamber.hpp
+    ui/qchambermonitor.hpp
+    ui/qchambertable.hpp
     controllers/tdccontroller.hpp
     controllers/voltagecontroller.hpp
     tdc/tdc.hpp

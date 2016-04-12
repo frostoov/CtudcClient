@@ -2,12 +2,18 @@
 
 #include "view.hpp"
 
+#include <bitset>
+
 class VoltageView : public View {
     Q_OBJECT
 public:
     class Stat {
     public:
         explicit Stat(uint8_t stat = 0) : mStat(stat) {}
+        operator uint8_t() const { return mStat; }
+        operator std::string() const {
+            return std::bitset<8>(mStat).to_string();
+        }
         bool ceb() const   { return (mStat >> 0) & 1; }
         bool gs() const    { return (mStat >> 1) & 1; }
         bool acceb() const { return (mStat >> 2) & 1; }
@@ -15,7 +21,6 @@ public:
         bool stdby() const { return (mStat >> 4) & 1; }
         bool rdact() const { return (mStat >> 6) & 1; }
         bool ruact() const { return (mStat >> 7) & 1; }
-        uint8_t value() const { return mStat; }
     private:
         uint8_t mStat;
     };

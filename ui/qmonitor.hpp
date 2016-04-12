@@ -2,7 +2,7 @@
 
 #include "controllers/expocontroller.hpp"
 #include "views/expoview.hpp"
-#include "qchamber.hpp"
+#include "qchambermonitor.hpp"
 
 
 #include <qcustomplot.h>
@@ -26,8 +26,8 @@ private:
 	QCustomPlot* makePlot();
 	void createConnections();
 	void updateGraph(QCPGraph& graph, int val);
-	ExpoView::ChamberFreq convertCount(const ExpoView::ChamberFreq& count, const ExpoView::ChamberFreq& prev, int sec);
-	ExpoView::TrekFreq convertCount(const ExpoView::TrekFreq& count, const ExpoView::TrekFreq& prev, int sec);
+	ChamberFreq convertCount(const ChamberFreq& count, const ChamberFreq& prev, int sec);
+	TrekFreq convertCount(const TrekFreq& count, const TrekFreq& prev, int sec);
 private:
 	std::shared_ptr<ExpoController> mExpoContr;
 	std::unique_ptr<uintmax_t> mTriggerCount[2];
@@ -36,7 +36,7 @@ private:
 	QCustomPlot* mPlot;
 	std::array<QChamberMonitor*, 16> mChambers;
 
-	std::unique_ptr<ExpoView::TrekFreq> mChambersCount[2];
+	std::unique_ptr<TrekFreq> mChambersCount[2];
 
 	QPushButton* mToggle;
 	QLineEdit* mTick;

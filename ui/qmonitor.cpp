@@ -218,7 +218,7 @@ void QMonitor::createConnections() {
 					mChambers.at(c.first)->addFreq(c.second);
 				*mChambersCount[0] = count;
 			} else {
-				mChambersCount[0] = make_unique<ExpoView::TrekFreq>(count);
+				mChambersCount[0] = make_unique<TrekFreq>(count);
 			}
 		}
 	});
@@ -231,16 +231,16 @@ void QMonitor::updateGraph(QCPGraph& graph, int val) {
 	graph.rescaleAxes();
 }
 
-ExpoView::ChamberFreq QMonitor::convertCount(const ExpoView::ChamberFreq& count, const ExpoView::ChamberFreq& prev, int sec) {
-	ExpoView::ChamberFreq freq{{0, 0, 0, 0}};
+ChamberFreq QMonitor::convertCount(const ChamberFreq& count, const ChamberFreq& prev, int sec) {
+	ChamberFreq freq{{0, 0, 0, 0}};
 	for(size_t i = 0; i < count.size(); ++i)
 		freq[i] = (count.at(i) - prev.at(i))/sec;
 	return freq;
 }
 
-ExpoView::TrekFreq QMonitor::convertCount(const ExpoView::TrekFreq& count, const ExpoView::TrekFreq& prev, int sec) {
-	ExpoView::TrekFreq freq;
-	constexpr ExpoView::ChamberFreq nullfreq{{0, 0, 0, 0}};
+TrekFreq QMonitor::convertCount(const TrekFreq& count, const TrekFreq& prev, int sec) {
+	TrekFreq freq;
+	constexpr ChamberFreq nullfreq{{0, 0, 0, 0}};
 	for(auto& c : count) {
 		auto p = prev.find(c.first);
 		if(p == prev.end())

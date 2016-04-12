@@ -1,5 +1,6 @@
 #pragma once
 
+#include "qchambertable.hpp"
 #include "controllers/expocontroller.hpp"
 #include "controllers/voltagecontroller.hpp"
 #include "views/expoview.hpp"
@@ -12,8 +13,6 @@
 #include <QFormLayout>
 #include <QTableView>
 #include <QPushButton>
-#include <QTableWidget>
-#include <QTableWidgetItem>
 #include <QHeaderView>
 #include <QLineEdit>
 #include <QKeyEvent>
@@ -39,16 +38,11 @@ public:
                      QWidget* parent = nullptr);
     ~QFrequencyWidget();
 protected:
-    void fillFreqTable(const ExpoView::TrekFreq& freq);
     void launchLoop();
-    void keyPressEvent(QKeyEvent* evt) override;
 private:
     void createLayouts();
     void createWidgets();
     void packWidgets();
-    void setupTable();
-    void createItems();
-    void createRootItems();
 private:
     std::shared_ptr<ExpoController> mExpoContr;
     std::shared_ptr<VoltageController> mVoltContr;
@@ -59,7 +53,7 @@ private:
     std::future<void> mFuture;
     std::atomic<bool> mLoopActive;
 private:
-    QTableWidget* table;
+    QChamberTable* mTable;
 
     QLoopFreqWidget* loopWidget;
 

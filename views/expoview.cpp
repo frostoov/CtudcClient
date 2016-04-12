@@ -6,6 +6,27 @@ using trek::net::Response;
 using std::string;
 using std::chrono::milliseconds;
 
+static TrekFreq convertFreq(const Response::JsonArray& data) {
+    TrekFreq trekFreq;
+    for(auto& item : data) {
+        auto num = item.at("chamber").get<unsigned>();
+        auto freq = item.at("freq");
+        trekFreq.emplace(num, ChamberFreq{{freq.at(0), freq.at(1), freq.at(2), freq.at(3)}});
+    }
+    return trekFreq;
+}
+
+
+static TrekFreq convertCount(const Response::JsonArray& data) {
+    TrekFreq trekFreq;
+    for(auto& item : data) {
+        auto num = item.at("chamber").get<unsigned>();
+        auto freq = item.at("count");
+        trekFreq.emplace(num, ChamberFreq{{freq.at(0), freq.at(1), freq.at(2), freq.at(3)}});
+    }
+    return trekFreq;
+}
+
 ExpoView::ExpoView(QObject* parent)
     : View("expo", createMethods(), parent) {
     qRegisterMetaType<TrekFreq>("TrekFreq");
@@ -76,23 +97,4 @@ ExpoView::Methods ExpoView::createMethods() {
     };
 }
 
-ExpoView::TrekFreq ExpoView::convertFreq(const Response::JsonArray& data) {
-    TrekFreq trekFreq;
-    for(auto& item : data) {
-        auto num = item.at("chamber").get<unsigned>();
-        auto freq = item.at("freq");
-        trekFreq.emplace(num, ChamberFreq{{freq.at(0), freq.at(1), freq.at(2), freq.at(3)}});
-    }
-    return trekFreq;
-}
 
-
-ExpoView::TrekFreq ExpoView::convertCount(const Response::JsonArray& data) {
-    TrekFreq trekFreq;
-    for(auto& item : data) {
-        auto num = item.at("chamber").get<unsigned>();
-        auto freq = item.at("count");
-        trekFreq.emplace(num, ChamberFreq{{freq.at(0), freq.at(1), freq.at(2), freq.at(3)}});
-    }
-    return trekFreq;
-}
