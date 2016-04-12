@@ -3,77 +3,77 @@
 constexpr size_t graphs = 4;
 
 QChamberMonitor::QChamberMonitor(const QString& name, QWidget* parent)
-    :QCustomPlot(parent) {
-    
-    setupGUI(name);
+	:QCustomPlot(parent) {
 
-    connect(this, &QCustomPlot::mousePress, [this](QMouseEvent* event) {
-        if(event->button() == Qt::RightButton) {
-            legend->setVisible(!legend->visible());
-            replot();
-        }
-    });
+	setupGUI(name);
+
+	connect(this, &QCustomPlot::mousePress, [this](QMouseEvent* event) {
+		if(event->button() == Qt::RightButton) {
+			legend->setVisible(!legend->visible());
+			replot();
+		}
+	});
 }
 
 void QChamberMonitor::addFreq(const ChamberFreq &freq ) {
-    auto key = double(QDateTime::currentMSecsSinceEpoch()) / 1000;
-    addFreq(key, freq);
+	auto key = double(QDateTime::currentMSecsSinceEpoch()) / 1000;
+	addFreq(key, freq);
 }
 
 void QChamberMonitor::addFreq(double key, const ChamberFreq& freq) {
-    forEach([&](auto i, auto& graph) {
-        graph.addData(key, freq.at(i));
-    });
+	forEach([&](auto i, auto& graph) {
+		graph.addData(key, freq.at(i));
+	});
 }
 
 void QChamberMonitor::removeDataBefore(double key) {
-    forEach([&](auto, auto& graph) {
-        graph.removeDataBefore(key);
-    });
+	forEach([&](auto, auto& graph) {
+		graph.removeDataBefore(key);
+	});
 }
 
 void QChamberMonitor::rescaleAxes() {
-    forEach([&](auto, auto& graph) {
-        graph.rescaleAxes();
-    });
+	forEach([&](auto, auto& graph) {
+		graph.rescaleAxes();
+	});
 }
 
 void QChamberMonitor::clearData() {
-    forEach([this](auto, auto& graph) {
-        graph.clearData();
-    });
+	forEach([this](auto, auto& graph) {
+		graph.clearData();
+	});
 }
 
 void QChamberMonitor::setTitle(const QString& title) {
-    mTitle->setText(title);
+	mTitle->setText(title);
 }
 
 void QChamberMonitor::setupGUI(const QString& name) {
-    plotLayout()->insertRow(0);
-    mTitle = new QCPPlotTitle(this, name);
-    plotLayout()->addElement(0, 0, mTitle);
-    for(int i = 0 ; i < graphs; ++i) {
-        QColor color {
-            255 * ( ((i + 1) >> 0) & 1 ),
-            255 * ( ((i + 1) >> 1) & 1 ),
-            255 * ( ((i + 1) >> 2) & 1 ),
+	plotLayout()->insertRow(0);
+	mTitle = new QCPPlotTitle(this, name);
+	plotLayout()->addElement(0, 0, mTitle);
+	for(size_t i = 0 ; i < graphs; ++i) {
+		QColor color {
+			255 * ( (int(i + 1) >> 0) & 1 ),
+			255 * ( (int(i + 1) >> 1) & 1 ),
+			255 * ( (int(i + 1) >> 2) & 1 ),
 	};
-        QPen pen(color);
-        pen.setWidth(2);
-        pen.setStyle(Qt::DotLine);
-        addGraph();
-        graph(i)->setName(tr("Wire №%1").arg(i + 1));
-        graph(i)->setPen(pen);
-        graph(i)->setLineStyle(QCPGraph::lsLine);
-        graph(i)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, 6));
-    }
+		QPen pen(color);
+		pen.setWidth(2);
+		pen.setStyle(Qt::DotLine);
+		addGraph();
+		graph(i)->setName(tr("Wire №%1").arg(i + 1));
+		graph(i)->setPen(pen);
+		graph(i)->setLineStyle(QCPGraph::lsLine);
+		graph(i)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, 6));
+	}
 }
 
 void QChamberMonitor::setTick(int tick) {
-    mTick = tick;
+	mTick = tick;
 }
 
 void QChamberMonitor::forEach(std::function<void(size_t, QCPGraph&)>&& func) {
-    for(size_t i = 0; i < graphs; ++i)
-        func(i, *graph(i));
+	for(size_t i = 0; i < graphs; ++i)
+		func(i, *graph(i));
 }
