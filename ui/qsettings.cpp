@@ -50,7 +50,7 @@ QSettingsWidget::QSettingsWidget(shared_ptr<TdcController> controller,
         }
     });
     connect(mView, &TdcView::mode, this, [this](auto status, auto mode) {
-        if(status.isEmpty()) 
+        if(status.isEmpty())
             mMode->setChecked( mode == Tdc::Mode::trigger );
     });
     connect(mView, &TdcView::tdcMeta, this, [this](auto status, auto flag) {

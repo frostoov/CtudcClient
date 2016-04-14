@@ -11,7 +11,7 @@ using TrekFreqSeries = std::unordered_map<uintmax_t, ChamFreqSeries>;
 class QChamberTable : public QTableWidget {
 public:
     struct Config {
-        Config(double minc = 100, double minn = 500, double maxn = 2000, double maxc= 4000)
+        Config(double minc = 100, double minn = 500, double maxn = 2000, double maxc = 4000)
             : minCrit(minc), minNorm(minn), maxNorm(maxn), maxCrit(maxc) { }
         double minCrit;
         double minNorm;

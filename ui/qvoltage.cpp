@@ -101,7 +101,7 @@ void QVoltageWidget::createConnections() {
             mStatus[type]->setText(QString::fromStdString(stat));
             mState[type]->setChecked(stat.gs());
         }
-                                   
+
     });
     connect(mView, &VoltageView::isOpen, this, [this](auto status, auto flag) {
         if(status.isEmpty()) {

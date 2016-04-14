@@ -1,6 +1,5 @@
 #include "qloopfreq.hpp"
 
-
 #include <QDir>
 
 #include <stdexcept>
@@ -21,10 +20,10 @@ QLoopFreqWidget::QLoopFreqWidget(QWidget* parent)
 
     connect(saveTableB, &QPushButton::clicked,
             this, &QLoopFreqWidget::saveTable);
-    
+
     connect(savePlotB, &QPushButton::clicked,
             this, &QLoopFreqWidget::savePlot);
-    
+
     connect(list, &QListWidget::itemSelectionChanged,
             this, &QLoopFreqWidget::setChamberData);
 }
@@ -80,7 +79,7 @@ void QLoopFreqWidget::clearData() {
 void QLoopFreqWidget::fillList(const TrekFreqSeries& series) {
     list->clear();
     set<int> chams;
-    std::transform(series.begin(), series.end(), std::inserter(chams, chams.begin()), [](auto& pair) {
+    std::transform(series.begin(), series.end(), std::inserter(chams, chams.begin()), [](auto & pair) {
         return pair.first;
     });
     for(auto& cham : chams)

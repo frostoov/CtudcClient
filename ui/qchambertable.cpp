@@ -18,11 +18,11 @@ QChamberTable::QChamberTable(int rows, const Config& conf, QWidget* parent)
     createItems();
 }
 
-void QChamberTable::setTrekFreq(const TrekFreq &freq) {
+void QChamberTable::setTrekFreq(const TrekFreq& freq) {
     item(0, 0)->setText("Chamber/Wire");
     setRowCount(freq.size() + 1);
     std::set<unsigned> triggChambers;
-    std::transform(freq.begin(), freq.end(), std::inserter(triggChambers, triggChambers.begin()), [](auto& pair) {
+    std::transform(freq.begin(), freq.end(), std::inserter(triggChambers, triggChambers.begin()), [](auto & pair) {
         return pair.first;
     });
     int row = 1;
@@ -45,7 +45,7 @@ void QChamberTable::setTrekFreq(const TrekFreq &freq) {
 }
 
 void QChamberTable::setChamFreqSeries(const ChamFreqSeries& series) {
-    item(0,0)->setText("Voltage/Wire");
+    item(0, 0)->setText("Voltage/Wire");
     setRowCount(series.size() + 1);
 
     int row = 1;
@@ -69,11 +69,11 @@ void QChamberTable::setChamFreqSeries(const ChamFreqSeries& series) {
 void QChamberTable::createHeader() {
     QTableWidgetItem* root[5] {
         new QTableWidgetItem,
-            new QTableWidgetItem("Wire 1"),
-            new QTableWidgetItem("Wire 2"),
-            new QTableWidgetItem("Wire 3"),
-            new QTableWidgetItem("Wire 4"),
-            };
+        new QTableWidgetItem("Wire 1"),
+        new QTableWidgetItem("Wire 2"),
+        new QTableWidgetItem("Wire 3"),
+        new QTableWidgetItem("Wire 4"),
+    };
     for (short i = 0; i < 5; ++i) {
         setItem(0, i, root[i]);
     }
@@ -93,7 +93,7 @@ void QChamberTable::createItems() {
             new QTableWidgetItem,
             new QTableWidgetItem,
             new QTableWidgetItem,
-	};
+        };
         for (int j = 0; j < 5; ++j)
             setItem(i + 1, j, items[j]);
     }

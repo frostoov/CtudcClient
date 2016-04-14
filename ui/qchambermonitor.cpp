@@ -3,11 +3,11 @@
 constexpr size_t graphs = 4;
 
 QChamberMonitor::QChamberMonitor(const QString& name, QWidget* parent)
-    :QCustomPlot(parent) {
-    
+    : QCustomPlot(parent) {
+
     setupGUI(name);
 
-    connect(this, &QCustomPlot::mousePress, [this](QMouseEvent* event) {
+    connect(this, &QCustomPlot::mousePress, [this](QMouseEvent * event) {
         if(event->button() == Qt::RightButton) {
             legend->setVisible(!legend->visible());
             replot();
@@ -15,22 +15,23 @@ QChamberMonitor::QChamberMonitor(const QString& name, QWidget* parent)
     });
 }
 
-void QChamberMonitor::addFreq(const ChamberFreq &freq ) {
+void QChamberMonitor::addFreq(const ChamberFreq& freq ) {
     auto key = double(QDateTime::currentMSecsSinceEpoch()) / 1000;
     addFreq(key, freq);
 }
 
 void QChamberMonitor::addFreq(double key, const ChamberFreq& freq) {
-    forEach([&](auto i, auto& graph) {
+    forEach([&](auto i, auto & graph) {
         graph.addData(key, freq.at(i));
     });
 }
 
 void QChamberMonitor::removeDataBefore(double key) {
-    forEach([&](auto, auto& graph) {
+    forEach([&](auto, auto & graph) {
         graph.removeDataBefore(key);
     });
 }
+
 
 void QChamberMonitor::rescaleAxis() {
     xAxis->rescale();
@@ -38,7 +39,7 @@ void QChamberMonitor::rescaleAxis() {
 }
 
 void QChamberMonitor::clearData() {
-    forEach([this](auto, auto& graph) {
+    forEach([this](auto, auto & graph) {
         graph.clearData();
     });
 }
@@ -51,12 +52,12 @@ void QChamberMonitor::setupGUI(const QString& name) {
     plotLayout()->insertRow(0);
     mTitle = new QCPPlotTitle(this, name);
     plotLayout()->addElement(0, 0, mTitle);
-    for(int i = 0 ; i < graphs; ++i) {
+    for(size_t i = 0 ; i < graphs; ++i) {
         QColor color {
-            255 * ( ((i + 1) >> 0) & 1 ),
-            255 * ( ((i + 1) >> 1) & 1 ),
-            255 * ( ((i + 1) >> 2) & 1 ),
-	};
+            255 * ( (int(i + 1) >> 0) & 1 ),
+            255 * ( (int(i + 1) >> 1) & 1 ),
+            255 * ( (int(i + 1) >> 2) & 1 ),
+        };
         QPen pen(color);
         pen.setWidth(2);
         pen.setStyle(Qt::DotLine);

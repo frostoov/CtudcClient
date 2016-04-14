@@ -31,7 +31,7 @@ QStatusWidget::QStatusWidget(shared_ptr<TdcController> controller,
         if(status.isEmpty())
             this->fillTable(stat);
     });
-      }
+}
 
 void QStatusWidget::createItems() {
     mItems[0][0] = new QTableWidgetItem("Data_Ready");

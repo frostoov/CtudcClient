@@ -1,9 +1,9 @@
 #pragma once
 
-#include "qchambermonitor.hpp"
-#include "qchambertable.hpp"
 #include "controllers/expocontroller.hpp"
 #include "views/expoview.hpp"
+#include "qchambermonitor.hpp"
+#include "qchambertable.hpp"
 
 #include <QWidget>
 #include <QListWidget>

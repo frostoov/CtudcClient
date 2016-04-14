@@ -31,7 +31,7 @@ MainWindow::MainWindow(std::shared_ptr<CtudcConn> conn, QWidget* parent)
     mClient.addView(mTdcView);
     mClient.addView(mVoltView);
     mClient.addView(mExpoView);
-    mConn->onRecv([this](auto& resp) {
+    mConn->onRecv([this](auto & resp) {
         if(!resp.status.empty()) {
             emit this->serverFail(QString::fromStdString(resp.object),
                                   QString::fromStdString(resp.method),
@@ -43,7 +43,7 @@ MainWindow::MainWindow(std::shared_ptr<CtudcConn> conn, QWidget* parent)
 
     setupGUI();
 
-    connect(this, &MainWindow::serverFail, this, [this](QString obj,QString method,QString status) {
+    connect(this, &MainWindow::serverFail, this, [this](QString obj, QString method, QString status) {
         QMessageBox::warning(this, "Failure",
                              tr("%1.%2: %3")
                              .arg(obj)
