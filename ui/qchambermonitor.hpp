@@ -21,6 +21,5 @@ protected:
     void setupGUI(const QString& name);
     void forEach( std::function<void(size_t, QCPGraph&)>&& func);
 private:
-    int mTick;
     QCPPlotTitle* mTitle;
 };

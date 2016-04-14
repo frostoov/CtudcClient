@@ -12,9 +12,8 @@ using std::make_unique;
 using std::array;
 
 QMonitor::QMonitor(std::shared_ptr<ExpoController> expoContr,
-<<<<<<< HEAD
                    ExpoView* expoView,
-                   QWidget* parent)
+                   QWidget *parent)
     : QSplitter(parent),
       mExpoContr(expoContr),
       mExpoView(expoView) {
@@ -24,24 +23,6 @@ QMonitor::QMonitor(std::shared_ptr<ExpoController> expoContr,
     mTimer->setInterval(mTick->text().toInt() * 1000);
     mTimer->setSingleShot(false);
     for(auto& c : mChambers) c->setTick(mTick->text().toInt());
-=======
-				   ExpoView* expoView,
-				   QWidget *parent)
-	: QSplitter(parent),
-	  mExpoContr(expoContr),
-	  mExpoView(expoView) {
-	setupGUI();
-
-	mTimer = new QTimer(this);
-	mTimer->setInterval(mTick->text().toInt() * 1000);
-	mTimer->setSingleShot(false);
-	for(auto& c : mChambers) c->setTick(mTick->text().toInt());
-	mPlot->xAxis->setTickStep(mTick->text().toInt());
-
-	createConnections();
-	resize(800, 600);
-}
->>>>>>> 6021cd03b67b3356659ca79c23b48c66a9cc96ee
 
     createConnections();
     resize(800, 600);
@@ -69,7 +50,7 @@ void QMonitor::setupGUI() {
     mPackageLine = new QLineEdit("-");
     mPackageLine->setReadOnly(true);
     auto statLayout = new QFormLayout;
-    statLayout->addRow("Type", mType);
+    statLayout->addRow("Type",mType);
     statLayout->addRow("Run", mCurrentRun);
     statLayout->addRow("Hits", mHitsLine);
     statLayout->addRow("Triggers", mTriggerLine);
@@ -81,11 +62,10 @@ void QMonitor::setupGUI() {
     ctrlLayout->addWidget(statGroup);
 
     mPlots = {{
-            createMetaPlot("Hits", {"good", "drops"}),
-            createMetaPlot("Triggers", {"good", "drops"}),
-            createMetaPlot("Packages", {"good", "drops"}),
-        }
-    };
+        createMetaPlot("Hits", {"good", "drops"}),
+        createMetaPlot("Triggers", {"good", "drops"}),
+        createMetaPlot("Packages", {"good", "drops"}),
+    }};
 
     auto plotsLayout = new QGridLayout;
     plotsLayout->addWidget(mPlots.at(0), 0, 0, 1, 2);
@@ -100,7 +80,7 @@ void QMonitor::setupGUI() {
         mChambers.at(i)->xAxis->setTickLabelType(QCPAxis::ltDateTime);
         mChambers.at(i)->xAxis->setDateTimeFormat("hh:mm:ss");
         mChambers.at(i)->xAxis->setAutoTickStep(true);
-        chambersLayout->addWidget(mChambers.at(i), i % 4, 4 - i / 4);
+        chambersLayout->addWidget(mChambers.at(i), i%4, 4 - i/4);
 
         connect(mChambers[i], &QChamberMonitor::mouseDoubleClick, this, [this, i] {
             static bool flag = true;
@@ -135,16 +115,16 @@ void QMonitor::setupGUI() {
 
 QCustomPlot* QMonitor::createMetaPlot(const QString& title, const QVector<QString>& names) {
     auto* plot = new QCustomPlot;
-
+    
     plot->plotLayout()->insertRow(0);
     plot->plotLayout()->addElement(0, 0, new QCPPlotTitle(plot, title));
-
+    
     plot->xAxis->setTickLabelType(QCPAxis::ltDateTime);
     plot->xAxis->setDateTimeFormat("hh:mm:ss");
     plot->xAxis->setAutoTickStep(false);
 
     plot->yAxis->setLabel("Frequency, Hz");
-    connect(plot, &QCustomPlot::mousePress, this, [plot](QMouseEvent * event) {
+    connect(plot, &QCustomPlot::mousePress, this, [plot](QMouseEvent* event) {
         if(event->button() == Qt::RightButton) {
             plot->legend->setVisible(!plot->legend->visible());
             plot->replot();
@@ -156,7 +136,7 @@ QCustomPlot* QMonitor::createMetaPlot(const QString& title, const QVector<QStrin
             255 * ( ((i + 1) >> 0) & 1 ),
             255 * ( ((i + 1) >> 1) & 1 ),
             255 * ( ((i + 1) >> 2) & 1 ),
-        };
+	};
 
         QBrush brush(color);
         QPen pen(color);
@@ -172,24 +152,23 @@ QCustomPlot* QMonitor::createMetaPlot(const QString& title, const QVector<QStrin
 }
 
 void QMonitor::createConnections() {
-<<<<<<< HEAD
-    connect(mTick, &QLineEdit::editingFinished, [this] {
+    connect(mTick, &QLineEdit::editingFinished, [this]{
         auto tick = (mTick->text().toInt() > 0) ? mTick->text().toInt() : 1;
         mTick->setText( QString::number(tick) );
         if(mTimer->interval() != tick) {
             mTimer->setInterval(tick * 1000);
-
+            
             for(auto& plot : mPlots)
-                plot->xAxis->setTickStep(2 * tick);
+                plot->xAxis->setTickStep(2*tick);
             for(auto& c : mChambers)
-                c->setTick(2 * tick);
+                c->setTick(2*tick);
             mTriggerCount.reset();
             mPackageCount.reset();
             mChambersCount.reset();
             if(mTimer->isActive()) mTimer->start();
         }
     });
-    connect(mToggle, &QPushButton::clicked, [this] {
+    connect(mToggle, &QPushButton::clicked, [this]{
         if(mToggle->text() == "Start") {
             mToggle->setText("Stop");
             mTimer->start();
@@ -198,7 +177,7 @@ void QMonitor::createConnections() {
             mTimer->stop();
         }
     });
-    connect(mTimer, &QTimer::timeout, [this] {
+    connect(mTimer, &QTimer::timeout, [this]{
         mExpoContr->triggerCount();
         mExpoContr->packageCount();
         mExpoContr->chambersCount();
@@ -219,24 +198,23 @@ void QMonitor::createConnections() {
         }
     });
     connect(mExpoView, &ExpoView::run, this, [this](auto status, auto run) {
-        if(status.isEmpty()) {
+        if(status.isEmpty()){
             mCurrentRun->setText(QString::number(run));
         }
     });
-    connect(mExpoView, &ExpoView::freq, this , [this](auto status, auto freq) {
+    connect(mExpoView, &ExpoView::freq, this ,[this](auto status, auto freq) {
         if(status.isEmpty()) {
             mFreq->setTrekFreq(freq);
             mFreq->update();
         }
     });
-    connect(mExpoView, &ExpoView::triggerCount, this, [this](auto status, auto count, auto drop) {
-        std::cout << __FILE__ << ':' << __LINE__ << std::endl;
+    connect(mExpoView, &ExpoView::triggerCount, this, [this](auto status, auto count, auto drop){
         if(status.isEmpty()) {
             if(mTriggerCount) {
                 auto& plot = *mPlots.at(1);
-                auto key = double(QDateTime::currentMSecsSinceEpoch()) / 1000;
-                this->updateGraph(*plot.graph(0), key, double(count - (*mTriggerCount)[0]) / mTick->text().toInt());
-                this->updateGraph(*plot.graph(1), key, double(drop -  (*mTriggerCount)[1]) / mTick->text().toInt());
+                auto key = double(QDateTime::currentMSecsSinceEpoch())/1000;
+                this->updateGraph(*plot.graph(0), key, double(count - (*mTriggerCount)[0])/mTick->text().toInt());
+                this->updateGraph(*plot.graph(1), key, double(drop -  (*mTriggerCount)[1])/mTick->text().toInt());
                 plot.xAxis->rescale();
                 plot.yAxis->rescale();
                 plot.replot();
@@ -247,14 +225,13 @@ void QMonitor::createConnections() {
             mTriggerLine->setText(tr("%1 | %2").arg(count).arg(drop));
         }
     });
-    connect(mExpoView, &ExpoView::packageCount, this, [this](auto status, auto count, auto drop) {
-        std::cout << __FILE__ << ':' << __LINE__ << std::endl;
+    connect(mExpoView, &ExpoView::packageCount, this, [this](auto status, auto count, auto drop){
         if(status.isEmpty()) {
             if(mPackageCount) {
                 auto& plot = *mPlots.at(2);
-                auto key = double(QDateTime::currentMSecsSinceEpoch()) / 1000;
-                this->updateGraph(*plot.graph(0), key, double(count - mPackageCount->at(0)) / mTick->text().toInt());
-                this->updateGraph(*plot.graph(1), key, double(drop -  mPackageCount->at(1)) / mTick->text().toInt());
+                auto key = double(QDateTime::currentMSecsSinceEpoch())/1000;
+                this->updateGraph(*plot.graph(0), key, double(count - mPackageCount->at(0))/mTick->text().toInt());
+                this->updateGraph(*plot.graph(1), key, double(drop -  mPackageCount->at(1))/mTick->text().toInt());
                 plot.xAxis->rescale();
                 plot.yAxis->rescale();
                 plot.replot();
@@ -266,22 +243,21 @@ void QMonitor::createConnections() {
         }
     });
     connect(mExpoView, &ExpoView::chambersCount, this, [this](auto status, auto count, auto drop) {
-        std::cout << __FILE__ << ':' << __LINE__ << std::endl;
         if(status.isEmpty()) {
             auto totalHits = reduceCount(count);
             auto totalDrops = reduceCount(drop);
             if(mChambersCount) {
-                auto key = double(QDateTime::currentMSecsSinceEpoch()) / 1000;
+                auto key = double(QDateTime::currentMSecsSinceEpoch())/1000;
                 auto prevHits = reduceCount(mChambersCount->at(0));
                 auto prevDrops = reduceCount(mChambersCount->at(1));
                 auto& plot = *mPlots.at(0);
-
-                this->updateGraph(*plot.graph(0), key, double(totalHits - prevHits) / mTick->text().toInt());
-                this->updateGraph(*plot.graph(1), key, double(totalDrops -  prevDrops) / mTick->text().toInt());
+                
+                this->updateGraph(*plot.graph(0), key, double(totalHits - prevHits)/mTick->text().toInt());
+                this->updateGraph(*plot.graph(1), key, double(totalDrops -  prevDrops)/mTick->text().toInt());
                 plot.xAxis->rescale();
                 plot.yAxis->rescale();
                 plot.replot();
-
+                
                 for(auto& c : this->convertCount(count, (*mChambersCount)[0], mTick->text().toInt())) {
                     mChambers.at(c.first)->addFreq(key, c.second);
                     mChambers.at(c.first)->removeDataBefore(key - 50 * mTick->text().toInt());
@@ -299,96 +275,11 @@ void QMonitor::createConnections() {
 
 ChamberFreq QMonitor::convertCount(const ChamberFreq& current, const ChamberFreq& prev, int sec) {
     return{{
-            (current.at(0) - prev.at(0)) / sec,
-            (current.at(1) - prev.at(1)) / sec,
-            (current.at(2) - prev.at(2)) / sec,
-            (current.at(3) - prev.at(3)) / sec,
-        }};
-=======
-	connect(mTick, &QLineEdit::editingFinished, [this]{
-		auto tick = (mTick->text().toInt() > 0) ? mTick->text().toInt() : 1;
-		mTick->setText( QString::number(tick) );
-		if(mTimer->interval() != tick * 1000) {
-			mTimer->setInterval(tick * 1000);
-			mPlot->xAxis->setTickStep(4*tick);
-			for(auto& c : mChambers) c->setTick(tick);
-			for(auto& t : mTriggerCount) t.reset();
-			for(auto& p : mPackageCount) p.reset();
-			for(auto& c : mChambersCount) c.reset();
-			if(mTimer->isActive()) mTimer->start();
-		}
-	});
-	connect(mToggle, &QPushButton::clicked, [this]{
-		if(mToggle->text() == "Start") {
-			mToggle->setText("Stop");
-			mTimer->start();
-		} else {
-			mToggle->setText("Start");
-			mTimer->stop();
-		}
-	});
-	connect(mTimer, &QTimer::timeout, [this]{
-		mExpoContr->triggerCount();
-		mExpoContr->packageCount();
-		mExpoContr->chambersCount();
-	});
-
-
-	connect(mExpoView, &ExpoView::type, [this](auto status, auto type) {
-		if(status.isEmpty()) {
-			mType->setText(type);
-			mToggle->setEnabled(type == "expo");
-			if(type != "read") {
-				mToggle->setText("Start");
-				mTimer->stop();
-			}
-		}
-	});
-	connect(mExpoView, &ExpoView::run, this, [this](auto status, auto run) {
-		if(status.isEmpty()){
-			mCurrentRun->setText(QString::number(run));
-		}
-	});
-	connect(mExpoView, &ExpoView::triggerCount, this, [this](auto status, auto count, auto drop){
-		if(status.isEmpty()) {
-			if(mTriggerCount[0] != nullptr) {
-				this->updateGraph(*mPlot->graph(0), (count - *mTriggerCount[0])/mTick->text().toInt());
-				mPlot->replot();
-				*mTriggerCount[0] = count;
-				*mTriggerCount[1] = drop;
-			} else {
-				mTriggerCount[0] = make_unique<uintmax_t>(count);
-				mTriggerCount[1] = make_unique<uintmax_t>(drop);
-			}
-			mTriggerLine->setText(tr("%1 | %2").arg(count).arg(drop));
-		}
-	});
-	connect(mExpoView, &ExpoView::packageCount, this, [this](auto status, auto count, auto drop){
-		if(status.isEmpty()) {
-			if(mPackageCount[0] != nullptr) {
-				this->updateGraph(*mPlot->graph(1), (count - *mPackageCount[0])/mTick->text().toInt());
-				mPlot->replot();
-				*mPackageCount[0] = count;
-				*mPackageCount[1] = drop;
-			} else {
-				mPackageCount[0] = make_unique<uintmax_t>(count);
-				mPackageCount[1] = make_unique<uintmax_t>(drop);
-			}
-			mPackageLine->setText(tr("%1 | %2").arg(count).arg(drop));
-		}
-	});
-	connect(mExpoView, &ExpoView::chambersCount, this, [this](auto status, auto count, auto drop) {
-		if(status.isEmpty()) {
-			if(mChambersCount[0] != nullptr) {
-				for(auto& c : this->convertCount(count, *mChambersCount[0], mTick->text().toInt()))
-					mChambers.at(c.first)->addFreq(c.second);
-				*mChambersCount[0] = count;
-			} else {
-				mChambersCount[0] = make_unique<ExpoView::TrekFreq>(count);
-			}
-		}
-	});
->>>>>>> 6021cd03b67b3356659ca79c23b48c66a9cc96ee
+        (current.at(0) - prev.at(0))/ sec,
+        (current.at(1) - prev.at(1))/ sec,
+        (current.at(2) - prev.at(2))/ sec,
+        (current.at(3) - prev.at(3))/ sec,
+    }};
 }
 
 TrekFreq QMonitor::convertCount(const TrekFreq& current, const TrekFreq& prev, int sec) {
@@ -407,7 +298,7 @@ TrekFreq QMonitor::convertCount(const TrekFreq& current, const TrekFreq& prev, i
 
 
 uintmax_t QMonitor::reduceCount(const TrekFreq& count) {
-    return std::accumulate(count.begin(), count.end(), uintmax_t(0), [](uintmax_t val, auto & count) {
+    return std::accumulate(count.begin(), count.end(), uintmax_t(0), [](uintmax_t val, auto& count) {
         return std::accumulate(count.second.begin(), count.second.end(), uintmax_t(0), [](uintmax_t val, double count) {
             return val + count;
         });
