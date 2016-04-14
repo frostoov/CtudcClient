@@ -32,7 +32,7 @@ QLoopFreqWidget::QLoopFreqWidget(QWidget* parent)
 void QLoopFreqWidget::createWidgets() {
     tab	= new QTabWidget;
     mTable = new QChamberTable(20);
-    mPlot = setupPlot();
+    mPlot = createPlot();
     list = new QListWidget;
     saveTableB  = new QPushButton("Save Table");
     savePlotB = new QPushButton("Save Plot");
@@ -113,19 +113,28 @@ void QLoopFreqWidget::printChamberFreq(QTextStream& stream, const ChamFreqSeries
     }
 }
 
+void QLoopFreqWidget::fillPlot(int chamNum, const ChamFreqSeries& series) {
+    mPlot->clearData();
+    mPlot->setTitle(tr("Chamber %1").arg(chamNum + 1));
+    for(auto& voltFreq : series)
+        mPlot->addFreq(voltFreq.first, voltFreq.second);
+    mPlot->rescaleAxis();
+    mPlot->replot();
+}
+
 
 void QLoopFreqWidget::savePlot() {
     auto dirname = QFileDialog::getExistingDirectory(this, "Save plots");
     if(dirname.isEmpty())
         return;
-    //for(auto& chamPair : mFreqs) {
-    //    fillPlot(chamPair.first);
-    //   plot->savePng(dirname + tr("/chamber_%1.png").arg(chamPair.first + 1), 1000, 1000, 1, 100);
-    //}
+    for(auto& chamPair : mFreqs) {
+        fillPlot(chamPair.first, chamPair.second);
+        mPlot->savePng(dirname + tr("/chamber_%1.png").arg(chamPair.first + 1), 1000, 1000, 1, 100);
+    }
     setChamberData();
 }
 
-QChamberMonitor* QLoopFreqWidget::setupPlot() {
+QChamberMonitor* QLoopFreqWidget::createPlot() {
     auto plot = new QChamberMonitor("Chamber");
     plot->yAxis->setScaleType(QCPAxis::ScaleType::stLogarithmic);
     plot->yAxis->setTickStep(1);
@@ -139,20 +148,15 @@ QChamberMonitor* QLoopFreqWidget::setupPlot() {
 }
 
 void QLoopFreqWidget::setChamberData() {
-    mTable->clearData();
-    mPlot->clearData();
     if(list->currentItem() == nullptr)
         return;
     try  {
-        auto chamNum = list->currentItem()->text().toUInt() - 1;
+        listItemSelTitle = list->currentItem()->text();
+        auto chamNum = listItemSelTitle.toUInt() - 1;
         auto chamFreq = mFreqs.at(chamNum);
         mTable->setChamFreqSeries(chamFreq);
-        mPlot->setTitle(tr("Chamber %1").arg(chamNum + 1));
-        for(auto& voltFreq : chamFreq)
-            mPlot->addFreq(voltFreq.first, voltFreq.second);
         mTable->update();
-        mPlot->rescaleAxes();
-        mPlot->replot();
+        fillPlot(chamNum, chamFreq);
     } catch(const std::exception& e) {
         std::cout << e.what() << std::endl;
     }

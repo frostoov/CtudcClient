@@ -33,6 +33,13 @@ QFrequencyWidget::QFrequencyWidget(shared_ptr<ExpoController> expoContr,
         if(launchFreq->text() == "Start freq") {
             mState = State::Freq;
             mExpoContr->launchFreq(100);
+            mFreqConn = connect(mExpoView, &ExpoView::freq, this, [this](auto status, auto freq) {
+                if(status.isEmpty()) {
+                    mTable->setTrekFreq(freq);
+                    mTable->update();
+                }
+                this->disconnect(mFreqConn);
+            });
         } else if(launchFreq->text() == "Stop freq") {
             mExpoContr->stopFreq();
             mExpoContr->freq();
@@ -44,27 +51,20 @@ QFrequencyWidget::QFrequencyWidget(shared_ptr<ExpoController> expoContr,
             mState = State::Loop;
             launchLoop();
             mFreqConn = connect(mExpoView, &ExpoView::freq, this, [this](auto status, auto freq) {
+                auto code = startVolt->text().toInt();
+                auto step = stepVolt->text().toInt();
+                startVolt->setText(QString::number(code + step));
                 if(status.isEmpty()) {
-                    auto code = startVolt->text().toInt();
-                    auto step = stepVolt->text().toInt();
-                    startVolt->setText(QString::number(code + step));
                     loopWidget->addFreq(code, freq);
                     loopWidget->updateData();
-                    if(code >= endVolt->text().toInt()) {
-                        startVolt->setText("0");
-                        disconnect(mFreqConn);
-                    }
+                }
+                if(code >= endVolt->text().toInt()) {
+                    startVolt->setText("0");
+                    this->disconnect(mFreqConn);
                 }
             });
         } else if(startLoop->text() == "Stop loop") {
             mLoopActive.store(false);
-        }
-    });
-
-    connect(mExpoView, &ExpoView::freq, this, [this](auto status, auto freq) {
-        if(status.isEmpty()) {
-            mTable->setTrekFreq(freq);
-            mTable->update();
         }
     });
 

@@ -11,7 +11,6 @@
 QChamberTable::QChamberTable(int rows, const Config& conf, QWidget* parent)
     : QTableWidget(rows + 1, 5, parent),
       mConf(conf) {
-    std::cout << "Hello" << std::endl;
     horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     horizontalHeader()->hide();

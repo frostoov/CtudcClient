@@ -3,6 +3,7 @@
 #include "controllers/expocontroller.hpp"
 #include "views/expoview.hpp"
 #include "qchambermonitor.hpp"
+#include "qchambertable.hpp"
 
 
 #include <qcustomplot.h>
@@ -16,33 +17,42 @@
 
 
 class QMonitor : public QSplitter {
-	Q_OBJECT
+    template<typename T, size_t N>
+    using ArrayPtr = std::unique_ptr<std::array<T,N> >;
 public:
-	QMonitor(std::shared_ptr<ExpoController> expoContr,
-			 ExpoView* expoView,
-			 QWidget *parent = nullptr);
+    QMonitor(std::shared_ptr<ExpoController> expoContr,
+             ExpoView* expoView,
+             QWidget *parent = nullptr);
+protected:
+    void setupGUI();
+    QCustomPlot* createMetaPlot(const QString& title, const QVector<QString>& names);
+    
+    void createConnections();
+    void updateGraph(QCPGraph& graph, double key, double val);
+    
+    ChamberFreq convertCount(const ChamberFreq& current, const ChamberFreq& prev, int sec);
+    TrekFreq convertCount(const TrekFreq& current, const TrekFreq& prev, int sec);
+    uintmax_t reduceCount(const TrekFreq& count);
 private:
-	void setupGUI();
-	QCustomPlot* makePlot();
-	void createConnections();
-	void updateGraph(QCPGraph& graph, int val);
-	ChamberFreq convertCount(const ChamberFreq& count, const ChamberFreq& prev, int sec);
-	TrekFreq convertCount(const TrekFreq& count, const TrekFreq& prev, int sec);
-private:
-	std::shared_ptr<ExpoController> mExpoContr;
-	std::unique_ptr<uintmax_t> mTriggerCount[2];
-	std::unique_ptr<uintmax_t> mPackageCount[2];
-	ExpoView* mExpoView;
-	QCustomPlot* mPlot;
-	std::array<QChamberMonitor*, 16> mChambers;
+    std::shared_ptr<ExpoController> mExpoContr;
+ 
+    ExpoView* mExpoView;
 
-	std::unique_ptr<TrekFreq> mChambersCount[2];
+    std::array<QCustomPlot*, 3> mPlots;
+    std::array<QChamberMonitor*, 16> mChambers;
+    QChamberTable* mFreq;
 
-	QPushButton* mToggle;
-	QLineEdit* mTick;
-	QLineEdit* mCurrentRun;
-	QLineEdit* mType;
-	QLineEdit* mTriggerLine;
-	QLineEdit* mPackageLine;
-	QTimer* mTimer;
+    ArrayPtr<uintmax_t ,2> mTriggerCount;
+    ArrayPtr<uintmax_t ,2> mPackageCount;
+    ArrayPtr<TrekFreq, 2> mChambersCount;
+
+    QPushButton* mToggle;
+    QLineEdit* mTick;
+    QLineEdit* mCurrentRun;
+    QLineEdit* mType;
+    
+    QLineEdit* mHitsLine;
+    QLineEdit* mTriggerLine;
+    QLineEdit* mPackageLine;
+    QTimer* mTimer;
 };

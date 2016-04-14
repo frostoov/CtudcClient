@@ -32,10 +32,9 @@ void QChamberMonitor::removeDataBefore(double key) {
     });
 }
 
-void QChamberMonitor::rescaleAxes() {
-    forEach([&](auto, auto& graph) {
-        graph.rescaleAxes();
-    });
+void QChamberMonitor::rescaleAxis() {
+    xAxis->rescale();
+    yAxis->rescale();
 }
 
 void QChamberMonitor::clearData() {
@@ -70,7 +69,7 @@ void QChamberMonitor::setupGUI(const QString& name) {
 }
 
 void QChamberMonitor::setTick(int tick) {
-    mTick = tick;
+    xAxis->setTickStep(tick);
 }
 
 void QChamberMonitor::forEach(std::function<void(size_t, QCPGraph&)>&& func) {

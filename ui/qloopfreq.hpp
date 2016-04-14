@@ -24,8 +24,9 @@ public:
     void updateData();
 protected:
     void printChamberFreq(QTextStream& stream, const ChamFreqSeries& chamFreq);
+    void fillPlot(int chamNum, const ChamFreqSeries& series);
     void fillList(const TrekFreqSeries& series);
-    QChamberMonitor* setupPlot();
+    QChamberMonitor* createPlot();
     void packWidgets();
     void createWidgets();
     void setupGUI();

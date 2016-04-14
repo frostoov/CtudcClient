@@ -30,66 +30,68 @@ static TrekFreq convertCount(const Response::JsonArray& data) {
 ExpoView::ExpoView(QObject* parent)
     : View("expo", createMethods(), parent) {
     qRegisterMetaType<TrekFreq>("TrekFreq");
+    qRegisterMetaType<uintmax_t>("uintmax_t");
     qRegisterMetaType<std::chrono::milliseconds>("std::chrono::milliseconds");
 }
 
 ExpoView::Methods ExpoView::createMethods() {
     return {
         {
-            "type", [this](const Response & r) {
+            "type", [this](const Response& r) {
                 auto type = r.status.empty() ? QString::fromStdString(r.outputs.at(0).get<string>()) : QString();
                 emit this->type(QString::fromStdString(r.status), type);
             }
         },
         {
-            "run", [this](const Response & r) {
+            "run", [this](const Response& r) {
                 auto run = r.status.empty() ? r.outputs.at(0).get<unsigned int>() : 0;
                 emit this->run(QString::fromStdString(r.status), run);
             }
         },
         {
-            "launchRead", [this](const Response & r) {
+            "launchRead", [this](const Response& r) {
                 emit this->launchRead(QString::fromStdString(r.status));
             }
         },
         {
-            "stopRead", [this](const Response & r) {
+            "stopRead", [this](const Response& r) {
                 emit this->stopRead(QString::fromStdString(r.status));
             }
         },
         {
-            "launchFreq", [this](const Response & r) {
+            "launchFreq", [this](const Response& r) {
                 emit this->launchFreq(QString::fromStdString(r.status));
             }
         },
         {
-            "stopFreq", [this](const Response & r) {
+            "stopFreq", [this](const Response& r) {
                 emit this->stopFreq(QString::fromStdString(r.status));
             }
         },
         {
-            "triggerCount", [this](const Response & r) {
-                auto count = r.status.empty() ? r.outputs.at(0).get<unsigned>() : 0;
-                auto drop  = r.status.empty() ? r.outputs.at(1).get<unsigned>() : 0;
+            "triggerCount", [this](const Response& r) {
+                auto count = r.status.empty() ? r.outputs.at(0).get<uintmax_t>() : 0;
+                auto drop  = r.status.empty() ? r.outputs.at(1).get<uintmax_t>() : 0;
                 emit this->triggerCount(QString::fromStdString(r.status), count, drop);
             }
         },
         {
-            "packageCount", [this](const Response & r) {
-                auto count = r.status.empty() ? r.outputs.at(0).get<unsigned>() : 0;
-                auto drop  = r.status.empty() ? r.outputs.at(1).get<unsigned>() : 0;
+            "packageCount", [this](const Response& r) {
+                auto count = r.status.empty() ? r.outputs.at(0).get<uintmax_t>() : 0;
+                auto drop  = r.status.empty() ? r.outputs.at(1).get<uintmax_t>() : 0;
                 emit this->packageCount(QString::fromStdString(r.status), count, drop);
             }
         },
         {
             "chambersCount", [this](const Response & r) {
+                std::cout << __FILE__ << ':' << __LINE__ << std::endl;
                 auto count = r.status.empty() ? convertCount(r.outputs.at(0)) : TrekFreq();
                 auto drop = r.status.empty() ? convertCount(r.outputs.at(1)) : TrekFreq();
                 emit this->chambersCount(QString::fromStdString(r.status), count, drop);
             }
         },
         {
-            "freq", [this](const Response & r) {
+            "freq", [this](const Response& r) {
                 auto freq = r.status.empty() ? convertFreq(r.outputs) : TrekFreq();
                 emit this->freq(QString::fromStdString(r.status), freq);
             }
