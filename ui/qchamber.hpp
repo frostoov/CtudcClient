@@ -11,10 +11,7 @@
 class QChamberMonitor : public QSplitter {
     Q_OBJECT
 public:
-    QChamberMonitor(const QString& name, QWidget* parent = nullptr);
     void addFreq(const ChamberFreq& freq);
-    void setCount(const ChamberFreq& count);
-    void reset();
     void setTick(int tick) { mTick = tick; }
 protected:
     void mouseDoubleClickEvent(QMouseEvent*) override;
