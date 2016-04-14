@@ -12,6 +12,7 @@ using std::make_unique;
 using std::array;
 
 QMonitor::QMonitor(std::shared_ptr<ExpoController> expoContr,
+<<<<<<< HEAD
                    ExpoView* expoView,
                    QWidget* parent)
     : QSplitter(parent),
@@ -23,6 +24,24 @@ QMonitor::QMonitor(std::shared_ptr<ExpoController> expoContr,
     mTimer->setInterval(mTick->text().toInt() * 1000);
     mTimer->setSingleShot(false);
     for(auto& c : mChambers) c->setTick(mTick->text().toInt());
+=======
+				   ExpoView* expoView,
+				   QWidget *parent)
+	: QSplitter(parent),
+	  mExpoContr(expoContr),
+	  mExpoView(expoView) {
+	setupGUI();
+
+	mTimer = new QTimer(this);
+	mTimer->setInterval(mTick->text().toInt() * 1000);
+	mTimer->setSingleShot(false);
+	for(auto& c : mChambers) c->setTick(mTick->text().toInt());
+	mPlot->xAxis->setTickStep(mTick->text().toInt());
+
+	createConnections();
+	resize(800, 600);
+}
+>>>>>>> 6021cd03b67b3356659ca79c23b48c66a9cc96ee
 
     createConnections();
     resize(800, 600);
@@ -153,6 +172,7 @@ QCustomPlot* QMonitor::createMetaPlot(const QString& title, const QVector<QStrin
 }
 
 void QMonitor::createConnections() {
+<<<<<<< HEAD
     connect(mTick, &QLineEdit::editingFinished, [this] {
         auto tick = (mTick->text().toInt() > 0) ? mTick->text().toInt() : 1;
         mTick->setText( QString::number(tick) );
@@ -284,6 +304,91 @@ ChamberFreq QMonitor::convertCount(const ChamberFreq& current, const ChamberFreq
             (current.at(2) - prev.at(2)) / sec,
             (current.at(3) - prev.at(3)) / sec,
         }};
+=======
+	connect(mTick, &QLineEdit::editingFinished, [this]{
+		auto tick = (mTick->text().toInt() > 0) ? mTick->text().toInt() : 1;
+		mTick->setText( QString::number(tick) );
+		if(mTimer->interval() != tick * 1000) {
+			mTimer->setInterval(tick * 1000);
+			mPlot->xAxis->setTickStep(4*tick);
+			for(auto& c : mChambers) c->setTick(tick);
+			for(auto& t : mTriggerCount) t.reset();
+			for(auto& p : mPackageCount) p.reset();
+			for(auto& c : mChambersCount) c.reset();
+			if(mTimer->isActive()) mTimer->start();
+		}
+	});
+	connect(mToggle, &QPushButton::clicked, [this]{
+		if(mToggle->text() == "Start") {
+			mToggle->setText("Stop");
+			mTimer->start();
+		} else {
+			mToggle->setText("Start");
+			mTimer->stop();
+		}
+	});
+	connect(mTimer, &QTimer::timeout, [this]{
+		mExpoContr->triggerCount();
+		mExpoContr->packageCount();
+		mExpoContr->chambersCount();
+	});
+
+
+	connect(mExpoView, &ExpoView::type, [this](auto status, auto type) {
+		if(status.isEmpty()) {
+			mType->setText(type);
+			mToggle->setEnabled(type == "expo");
+			if(type != "read") {
+				mToggle->setText("Start");
+				mTimer->stop();
+			}
+		}
+	});
+	connect(mExpoView, &ExpoView::run, this, [this](auto status, auto run) {
+		if(status.isEmpty()){
+			mCurrentRun->setText(QString::number(run));
+		}
+	});
+	connect(mExpoView, &ExpoView::triggerCount, this, [this](auto status, auto count, auto drop){
+		if(status.isEmpty()) {
+			if(mTriggerCount[0] != nullptr) {
+				this->updateGraph(*mPlot->graph(0), (count - *mTriggerCount[0])/mTick->text().toInt());
+				mPlot->replot();
+				*mTriggerCount[0] = count;
+				*mTriggerCount[1] = drop;
+			} else {
+				mTriggerCount[0] = make_unique<uintmax_t>(count);
+				mTriggerCount[1] = make_unique<uintmax_t>(drop);
+			}
+			mTriggerLine->setText(tr("%1 | %2").arg(count).arg(drop));
+		}
+	});
+	connect(mExpoView, &ExpoView::packageCount, this, [this](auto status, auto count, auto drop){
+		if(status.isEmpty()) {
+			if(mPackageCount[0] != nullptr) {
+				this->updateGraph(*mPlot->graph(1), (count - *mPackageCount[0])/mTick->text().toInt());
+				mPlot->replot();
+				*mPackageCount[0] = count;
+				*mPackageCount[1] = drop;
+			} else {
+				mPackageCount[0] = make_unique<uintmax_t>(count);
+				mPackageCount[1] = make_unique<uintmax_t>(drop);
+			}
+			mPackageLine->setText(tr("%1 | %2").arg(count).arg(drop));
+		}
+	});
+	connect(mExpoView, &ExpoView::chambersCount, this, [this](auto status, auto count, auto drop) {
+		if(status.isEmpty()) {
+			if(mChambersCount[0] != nullptr) {
+				for(auto& c : this->convertCount(count, *mChambersCount[0], mTick->text().toInt()))
+					mChambers.at(c.first)->addFreq(c.second);
+				*mChambersCount[0] = count;
+			} else {
+				mChambersCount[0] = make_unique<ExpoView::TrekFreq>(count);
+			}
+		}
+	});
+>>>>>>> 6021cd03b67b3356659ca79c23b48c66a9cc96ee
 }
 
 TrekFreq QMonitor::convertCount(const TrekFreq& current, const TrekFreq& prev, int sec) {
