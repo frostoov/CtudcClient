@@ -84,7 +84,6 @@ ExpoView::Methods ExpoView::createMethods() {
         },
         {
             "chambersCount", [this](const Response & r) {
-                std::cout << __FILE__ << ':' << __LINE__ << std::endl;
                 auto count = r.status.empty() ? convertCount(r.outputs.at(0)) : TrekFreq();
                 auto drop = r.status.empty() ? convertCount(r.outputs.at(1)) : TrekFreq();
                 emit this->chambersCount(QString::fromStdString(r.status), count, drop);

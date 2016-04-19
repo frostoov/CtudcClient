@@ -23,6 +23,8 @@ QVoltageWidget::QVoltageWidget(shared_ptr<VoltageController> controller,
     timer = new QTimer(this);
     timer->setInterval(mFreq * 1000);
     timer->setSingleShot(false);
+    for(auto& plot : mPlot)
+        plot->xAxis->setTickStep(4 * mFreq);
 
     createConnections();
     resize(800, 600);
@@ -138,10 +140,10 @@ void QVoltageWidget::setupGUI() {
     mUpdate = new QPushButton("Update");
 
     auto freq = new QLineEdit("10");
-    connect(freq, &QLineEdit::returnPressed, [this, freq] {
+    connect(freq, &QLineEdit::editingFinished, [this, freq] {
         mFreq = freq->text().toInt() > 0 ? freq->text().toInt() : 1;
         freq->setText(QString::number(mFreq));
-        if(timer->interval() * 1000 != mFreq) {
+        if(timer->interval() != mFreq * 1000) {
             timer->setInterval(1000 * mFreq);
             if(timer->isActive())
                 timer->start();
