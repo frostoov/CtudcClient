@@ -67,6 +67,7 @@ find_package(
 	1.55.
 	COMPONENTS
 	system
+        filesystem
 	REQUIRED
 )
 include_directories(${Boost_INCLUDE_DIRS})

@@ -1,15 +1,21 @@
 #include "qmonitor.hpp"
 
-#include <trek/common/timeprint.hpp>
+#include <trek/common/stringbuilder.hpp>
+
+#include <boost/filesystem.hpp>
 
 #include <QGridLayout>
 #include <QVBoxLayout>
 #include <QSizePolicy>
 #include <QVector>
 
+using trek::StringBuilder;
+
 using std::shared_ptr;
 using std::make_unique;
 using std::array;
+using std::ostream;
+using std::chrono::system_clock;
 
 QMonitor::QMonitor(std::shared_ptr<ExpoController> expoContr,
                    ExpoView* expoView,
@@ -17,12 +23,14 @@ QMonitor::QMonitor(std::shared_ptr<ExpoController> expoContr,
     : QSplitter(parent),
       mExpoContr(expoContr),
       mExpoView(expoView) {
+    boost::filesystem::create_directories("./monitoring/chambers");
+    boost::filesystem::create_directories("./monitoring/frequency");
     setupGUI();
 
     mTimer = new QTimer(this);
     mTimer->setInterval(mTick->text().toInt() * 1000);
     mTimer->setSingleShot(false);
-    for(auto& c : mChambers) c->setTick(mTick->text().toInt());
+    for(auto& c : mChambers) c->setTick(4 * mTick->text().toInt());
 
     createConnections();
     resize(800, 600);
@@ -79,7 +87,7 @@ void QMonitor::setupGUI() {
         mChambers.at(i) = new QChamberMonitor(tr("Chamber %1").arg(i + 1));
         mChambers.at(i)->xAxis->setTickLabelType(QCPAxis::ltDateTime);
         mChambers.at(i)->xAxis->setDateTimeFormat("hh:mm:ss");
-        mChambers.at(i)->xAxis->setAutoTickStep(true);
+        mChambers.at(i)->xAxis->setAutoTickStep(false);
         chambersLayout->addWidget(mChambers.at(i), i%4, 4 - i/4);
 
         connect(mChambers[i], &QChamberMonitor::mouseDoubleClick, this, [this, i] {
@@ -87,11 +95,10 @@ void QMonitor::setupGUI() {
             if(flag) {
                 for(auto& c : mChambers) c->hide();
                 mChambers.at(i)->show();
-                flag = !flag;
             } else {
                 for(auto& c : mChambers) c->show();
-                flag = !flag;
             }
+            flag = !flag;
         });
     }
     auto chambersWidget = new QWidget;
@@ -112,6 +119,10 @@ void QMonitor::setupGUI() {
     setStretchFactor(1, 5);
 }
 
+static ostream& operator<<(ostream& stream, const system_clock::time_point& tp) {
+    auto time = system_clock::to_time_t(tp);
+    return stream << std::put_time(std::localtime(&time), "%d.%m.%Y %T");
+}
 
 QCustomPlot* QMonitor::createMetaPlot(const QString& title, const QVector<QString>& names) {
     auto* plot = new QCustomPlot;
@@ -159,13 +170,14 @@ void QMonitor::createConnections() {
             mTimer->setInterval(tick * 1000);
             
             for(auto& plot : mPlots)
-                plot->xAxis->setTickStep(2*tick);
+                plot->xAxis->setTickStep(4*tick);
             for(auto& c : mChambers)
-                c->setTick(2*tick);
+                c->setTick(4*tick);
             mTriggerCount.reset();
             mPackageCount.reset();
             mChambersCount.reset();
-            if(mTimer->isActive()) mTimer->start();
+            if(mTimer->isActive())
+                mTimer->start();
         }
     });
     connect(mToggle, &QPushButton::clicked, [this]{
@@ -175,14 +187,17 @@ void QMonitor::createConnections() {
         } else {
             mToggle->setText("Start");
             mTimer->stop();
+            mTriggerStream.flush();
+            mPackageStream.flush();
+            for(auto& c : mChambersStream) c.second.flush();
         }
     });
+    
     connect(mTimer, &QTimer::timeout, [this]{
         mExpoContr->triggerCount();
         mExpoContr->packageCount();
         mExpoContr->chambersCount();
     });
-
 
     connect(mExpoView, &ExpoView::type, [this](auto status, auto type) {
         if(status.isEmpty()) {
@@ -206,6 +221,20 @@ void QMonitor::createConnections() {
         if(status.isEmpty()) {
             mFreq->setTrekFreq(freq);
             mFreq->update();
+            for(auto c : freq) {
+                if(mFreqStream.count(c.first) == 0) {
+                        std::ofstream stream;
+                        stream.exceptions(stream.failbit | stream.badbit);
+                        stream.open(StringBuilder() << "./monitoring/frequency/chamber_" << (c.first + 1) << ".dat",
+                                    stream.app | stream.binary);
+                        mFreqStream.emplace(c.first, std::move(stream));
+                    }
+                    auto& s = mFreqStream.at(c.first);
+                    s << system_clock::now();
+                    for(auto& w : c.second)
+                        s << '\t' << w;
+                    s << std::endl;
+            }
         }
     });
     connect(mExpoView, &ExpoView::triggerCount, this, [this](auto status, auto count, auto drop){
@@ -213,11 +242,16 @@ void QMonitor::createConnections() {
             if(mTriggerCount) {
                 auto& plot = *mPlots.at(1);
                 auto key = double(QDateTime::currentMSecsSinceEpoch())/1000;
-                this->updateGraph(*plot.graph(0), key, double(count - (*mTriggerCount)[0])/mTick->text().toInt());
-                this->updateGraph(*plot.graph(1), key, double(drop -  (*mTriggerCount)[1])/mTick->text().toInt());
+                this->updateGraph(*plot.graph(0), key, double(count - mTriggerCount->at(0))/mTick->text().toInt());
+                this->updateGraph(*plot.graph(1), key, double(drop -  mTriggerCount->at(1))/mTick->text().toInt());
                 plot.xAxis->rescale();
                 plot.yAxis->rescale();
+                if(!mTriggerStream.is_open())
+                    mTriggerStream.open("./monitoring/triggers.dat", mTriggerStream.app | mTriggerStream.binary);
                 plot.replot();
+                mTriggerStream << system_clock::now() << '\t' << count << '\t' << drop << '\t'
+                               << (double(count - mTriggerCount->at(0))/mTick->text().toInt()) << '\t'
+                               << (double(drop -  mTriggerCount->at(1))/mTick->text().toInt()) << '\n';
             } else {
                 mTriggerCount = make_unique< array<uintmax_t, 2> >();
             }
@@ -235,6 +269,11 @@ void QMonitor::createConnections() {
                 plot.xAxis->rescale();
                 plot.yAxis->rescale();
                 plot.replot();
+                if(!mPackageStream.is_open())
+                    mPackageStream.open("./monitoring/packages.dat", mTriggerStream.app | mTriggerStream.binary);
+                mPackageStream << system_clock::now() << '\t' << count << '\t' << drop << '\t'
+                               << (double(count - mPackageCount->at(0))/mTick->text().toInt()) << '\t'
+                               << (double(drop -  mPackageCount->at(1))/mTick->text().toInt()) << '\n';
             } else {
                 mPackageCount = make_unique< array<uintmax_t, 2> >();
             }
@@ -242,6 +281,7 @@ void QMonitor::createConnections() {
             mPackageLine->setText(tr("%1 | %2").arg(count).arg(drop));
         }
     });
+    
     connect(mExpoView, &ExpoView::chambersCount, this, [this](auto status, auto count, auto drop) {
         if(status.isEmpty()) {
             auto totalHits = reduceCount(count);
@@ -258,11 +298,23 @@ void QMonitor::createConnections() {
                 plot.yAxis->rescale();
                 plot.replot();
                 
-                for(auto& c : this->convertCount(count, (*mChambersCount)[0], mTick->text().toInt())) {
+                for(auto& c : this->convertCount(count, mChambersCount->at(0), mTick->text().toInt())) {
                     mChambers.at(c.first)->addFreq(key, c.second);
                     mChambers.at(c.first)->removeDataBefore(key - 50 * mTick->text().toInt());
                     mChambers.at(c.first)->rescaleAxis();
                     mChambers.at(c.first)->replot();
+                    if(mChambersStream.count(c.first) == 0) {
+                        std::ofstream stream;
+                        stream.exceptions(stream.failbit | stream.badbit);
+                        stream.open(StringBuilder() << "./monitoring/chambers/chamber_" << (c.first + 1) << ".dat",
+                                    stream.app | stream.binary);
+                        mChambersStream.emplace(c.first, std::move(stream));
+                    }
+                    auto& s = mChambersStream.at(c.first);
+                    s << system_clock::now();
+                    for(auto& w : c.second)
+                        s << '\t' << w;
+                    s << '\n';
                 }
             } else {
                 mChambersCount = make_unique< array<TrekFreq, 2> >();
@@ -304,7 +356,6 @@ uintmax_t QMonitor::reduceCount(const TrekFreq& count) {
         });
     });
 }
-
 
 void QMonitor::updateGraph(QCPGraph& graph, double key, double val) {
     graph.addData(key, val);

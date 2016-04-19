@@ -5,7 +5,6 @@
 #include "qchambermonitor.hpp"
 #include "qchambertable.hpp"
 
-
 #include <qcustomplot.h>
 
 #include <QSplitter>
@@ -15,6 +14,7 @@
 #include <QString>
 #include <QTabWidget>
 
+#include <fstream>
 
 class QMonitor : public QSplitter {
     template<typename T, size_t N>
@@ -43,9 +43,13 @@ private:
     QChamberTable* mFreq;
 
     ArrayPtr<uintmax_t , 2> mTriggerCount;
+    std::ofstream mTriggerStream;
     ArrayPtr<uintmax_t , 2> mPackageCount;
+    std::ofstream mPackageStream;
     ArrayPtr<TrekFreq, 2> mChambersCount;
-
+    std::ofstream mHitStream;
+    std::unordered_map<unsigned, std::ofstream> mChambersStream;
+    std::unordered_map<unsigned, std::ofstream> mFreqStream;
     QPushButton* mToggle;
     QLineEdit* mTick;
     QLineEdit* mCurrentRun;

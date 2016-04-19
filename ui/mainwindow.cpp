@@ -128,6 +128,7 @@ MainWindow::MainWindow(std::shared_ptr<CtudcConn> conn, QWidget* parent)
 MainWindow::~MainWindow() {
     delete mFrequency;
     delete mVoltage;
+    delete mMonitor;
 }
 
 void MainWindow::setupGUI() {

@@ -56,6 +56,7 @@ void QVoltageWidget::createConnections() {
         mToggle->setText(timer->isActive() ? "Stop" : "Start");
     });
     connect(mUpdate, &QPushButton::clicked, this, [this](auto flag) {
+        mController->isOpen();
         for(auto& name : cellList)
             this->updateCell(name);
     });
@@ -71,12 +72,12 @@ void QVoltageWidget::createConnections() {
     });
     //View connections
     connect(mView, &VoltageView::voltage, this, [this](auto status, auto type, auto val) {
-        if(!status.isEmpty())
-            QMessageBox::critical(this, "Get voltage", status);
-        else {
+        if(status.isEmpty()) {
             QCustomPlot& plot = *mPlot[type];
             this->updateGraph(*plot.graph(0), val);
             plot.rescaleAxes();
+            plot.yAxis->setRange( {0, plot.yAxis->range().upper} );
+            plot.yAxis2->setRange( {0, plot.yAxis2->range().upper} );
             plot.replot();
         }
     });
@@ -85,6 +86,8 @@ void QVoltageWidget::createConnections() {
             QCustomPlot& plot = *mPlot[type];
             this->updateGraph(*plot.graph(1), val);
             plot.rescaleAxes();
+            plot.yAxis->setRange( {0, plot.yAxis->range().upper} );
+            plot.yAxis2->setRange( {0, plot.yAxis2->range().upper} );
             plot.replot();
         }
     });
@@ -101,15 +104,10 @@ void QVoltageWidget::createConnections() {
             mStatus[type]->setText(QString::fromStdString(stat));
             mState[type]->setChecked(stat.gs());
         }
-
     });
     connect(mView, &VoltageView::isOpen, this, [this](auto status, auto flag) {
-        if(status.isEmpty()) {
-            if(flag)
-                mOpen->setText("Close");
-            else
-                mOpen->setText("Open");
-        }
+        if(status.isEmpty())
+            mOpen->setText(flag ? "Close" : "Open");
     });
 }
 
@@ -141,11 +139,13 @@ void QVoltageWidget::setupGUI() {
 
     auto freq = new QLineEdit("10");
     connect(freq, &QLineEdit::returnPressed, [this, freq] {
-        bool ok;
-        auto val = freq->text().toInt(&ok);
-        if(ok) mFreq = val;
+        mFreq = freq->text().toInt() > 0 ? freq->text().toInt() : 1;
         freq->setText(QString::number(mFreq));
-        timer->setInterval(1000 * mFreq);
+        if(timer->interval() * 1000 != mFreq) {
+            timer->setInterval(1000 * mFreq);
+            if(timer->isActive())
+                timer->start();
+        }
         for(auto& plot : mPlot)
             plot->xAxis->setTickStep(4 * mFreq);
     });
@@ -199,7 +199,6 @@ void QVoltageWidget::setupPlot(QCustomPlot& plot, const QString& name) {
         plot.graph(0)->setLineStyle(QCPGraph::lsLine);
         plot.graph(0)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, 6));
     }
-
     {
         //amperage
         plot.addGraph(plot.xAxis, plot.yAxis2);
@@ -214,11 +213,10 @@ void QVoltageWidget::setupPlot(QCustomPlot& plot, const QString& name) {
         plot.graph(1)->setLineStyle(QCPGraph::lsLine);
         plot.graph(1)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, 6));
     }
-
 }
 
 void QVoltageWidget::updateGraph(QCPGraph& graph, int val) {
-    double key = double(QDateTime::currentDateTime().toMSecsSinceEpoch()) / 1000;
+    auto key = double(QDateTime::currentMSecsSinceEpoch()) / 1000;
     graph.addData(key, val);
     graph.removeDataBefore(key - 50 * mFreq);
 }
