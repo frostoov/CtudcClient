@@ -26,7 +26,7 @@ QStatusWidget::QStatusWidget(shared_ptr<TdcController> controller,
     verticalHeader()->hide();
 
     connect(mContr.get(), &TdcController::statChanged, this, [this](auto stat) {
-        fillTable(stat);
+        this->fillTable(stat);
     });
 }
 

@@ -33,7 +33,7 @@ QMonitor::QMonitor(std::shared_ptr<ExpoController> expoContr,
 
     mTriggerStream.open("./monitoring/triggers.dat", mTriggerStream.app | mTriggerStream.binary);
     mPackageStream.open("./monitoring/packages.dat", mTriggerStream.app | mTriggerStream.binary);
-    
+
     setupGUI();
 
     mTimer = new QTimer(this);
@@ -96,7 +96,7 @@ void QMonitor::setupGUI() {
     plotsWidget->setLayout(plotsLayout);
 
     auto chambersLayout = new QGridLayout;
-    for(int i = 0; i < mChambers.size(); ++i) {
+    for(size_t i = 0; i < mChambers.size(); ++i) {
         mChambers.at(i) = new QChamberMonitor(tr("Chamber %1").arg(i + 1));
         mChambers.at(i)->xAxis->setTickLabelType(QCPAxis::ltDateTime);
         mChambers.at(i)->xAxis->setDateTimeFormat("hh:mm:ss");
@@ -228,7 +228,7 @@ void QMonitor::createConnections() {
             TrekFreq count, drop;
             std::tie(count, drop) = mExpoContr->chambersCount();
             updateChambersCount(count, drop);
-        }       
+        }
     });
     connect(mExpoContr.get(), &ExpoController::typeChanged,
             this, &QMonitor::handleExpoType);
@@ -336,13 +336,13 @@ void QMonitor::updateChambersCount(const TrekFreq& count, const TrekFreq& drop) 
         auto prevHits = reduceCount(mChambersCount->at(0));
         auto prevDrops = reduceCount(mChambersCount->at(1));
         auto& plot = *mPlots.at(0);
-                
+
         this->updateGraph(*plot.graph(0), key, double(totalHits - prevHits)/mTick->text().toInt());
         this->updateGraph(*plot.graph(1), key, double(totalDrops -  prevDrops)/mTick->text().toInt());
         plot.xAxis->rescale();
         plot.yAxis->rescale();
         plot.replot();
-                
+
         for(auto& c : this->convertCount(count, mChambersCount->at(0), mTick->text().toInt())) {
             mChambers.at(c.first)->addFreq(key, c.second);
             mChambers.at(c.first)->removeDataBefore(key - 50 * mTick->text().toInt());
