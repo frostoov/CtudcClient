@@ -41,9 +41,9 @@ QMonitor::QMonitor(std::shared_ptr<ExpoController> expoContr,
     mTimer->setInterval(tick * 1000);
     mTimer->setSingleShot(false);
     for(auto& plot : mPlots)
-        plot->xAxis->setTickStep(6*tick);
+        plot->xAxis->setTickStep(5*tick);
     for(auto& c : mChambers)
-        c->setTick(6*tick);
+        c->setTick(5*tick);
 
     createConnections();
     resize(800, 600);
@@ -134,15 +134,22 @@ void QMonitor::setupGUI() {
 
 static ostream& operator<<(ostream& stream, const system_clock::time_point& tp) {
     auto time = system_clock::to_time_t(tp);
+#ifdef __WIN32
+    auto tm = std::localtime(&time);
+    return stream << tm->tm_mday << '.' << tm->tm_mday << '.' << (tm->tm_year + 1900) << ' '
+                  << tm->tm_hour << ':' << tm->tm_min << '.' << tm->tm_sec;
+#elif __linux__
     return stream << std::put_time(std::localtime(&time), "%d.%m.%Y %T");
+#endif
+
 }
 
 QCustomPlot* QMonitor::createMetaPlot(const QString& title, const QVector<QString>& names) {
     auto* plot = new QCustomPlot;
-    
+
     plot->plotLayout()->insertRow(0);
     plot->plotLayout()->addElement(0, 0, new QCPPlotTitle(plot, title));
-    
+
     plot->xAxis->setTickLabelType(QCPAxis::ltDateTime);
     plot->xAxis->setDateTimeFormat("hh:mm:ss");
     plot->xAxis->setAutoTickStep(false);
@@ -160,7 +167,7 @@ QCustomPlot* QMonitor::createMetaPlot(const QString& title, const QVector<QStrin
             255 * ( ((i + 1) >> 0) & 1 ),
             255 * ( ((i + 1) >> 1) & 1 ),
             255 * ( ((i + 1) >> 2) & 1 ),
-	};
+    };
 
         QBrush brush(color);
         QPen pen(color);
@@ -182,12 +189,13 @@ void QMonitor::createConnections() {
             tick = 1;
         mTick->setText( QString::number(tick) );
         if(mTimer->interval() != tick * 1000) {
+
             mTimer->setInterval(tick * 1000);
-            
+
             for(auto& plot : mPlots)
-                plot->xAxis->setTickStep(6*tick);
+                plot->xAxis->setTickStep(5*tick);
             for(auto& c : mChambers)
-                c->setTick(6*tick);
+                c->setTick(5*tick);
             mChambersCount.reset();
             if(mTimer->isActive()) {
                 mTimer->stop();
@@ -204,7 +212,7 @@ void QMonitor::createConnections() {
             stopMonitoring();
         }
     });
-    
+
     connect(mTimer, &QTimer::timeout, [this]{
         {
             uintmax_t count, drop;
@@ -222,7 +230,6 @@ void QMonitor::createConnections() {
             updateChambersCount(count, drop);
         }       
     });
-
     connect(mExpoContr.get(), &ExpoController::typeChanged,
             this, &QMonitor::handleExpoType);
     connect(mExpoContr.get(), &ExpoController::newRun, this, [this](auto run) {

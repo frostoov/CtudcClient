@@ -22,6 +22,8 @@ QVoltageWidget::QVoltageWidget(shared_ptr<VoltageController> controller,
     timer = new QTimer(this);
     timer->setInterval(defaultTick * 1000);
     timer->setSingleShot(false);
+    for(auto& plot : mPlot)
+        plot->xAxis->setTickStep(5 * mTick->text().toInt());
 
     createConnections();
     resize(800, 600);
@@ -154,6 +156,7 @@ void QVoltageWidget::setupGUI() {
             freq = 1;
         mTick->setText(QString::number(freq));
         timer->setInterval(1000 * freq);
+
         for(auto& plot : mPlot)
             plot->xAxis->setTickStep(4 * freq);
     });

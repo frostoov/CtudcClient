@@ -16,8 +16,9 @@
 #include <fstream>
 
 class QMonitor : public QSplitter {
-    template<typename T, size_t N>
-    using ArrayPtr = std::unique_ptr<std::array<T, N> >;
+	template<typename T, size_t N>
+	using ArrayPtr = std::unique_ptr<std::array<T, N> >;
+	using OfstreamPtr = std::unique_ptr<std::ofstream>;
 public:
     QMonitor(std::shared_ptr<ExpoController> expoContr,
              QWidget* parent = nullptr);
