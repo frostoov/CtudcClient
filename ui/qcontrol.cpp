@@ -1,6 +1,5 @@
 #include "qcontrol.hpp"
 
-
 #include <QVBoxLayout>
 #include <QPushButton>
 #include <QHeaderView>
@@ -13,11 +12,9 @@ using std::exception;
 using std::string;
 
 QControlWidget::QControlWidget(shared_ptr<TdcController> controller,
-                               TdcView* view,
                                QWidget* parent)
     : QTableWidget(parent),
-      mController(controller),
-      mView(view) {
+      mContr(controller) {
     setRowCount(11);
     setColumnCount(2);
     createItems();
@@ -27,16 +24,29 @@ QControlWidget::QControlWidget(shared_ptr<TdcController> controller,
     horizontalHeader()->hide();
     verticalHeader()->hide();
 
-    auto changeConn = connect(this, &QTableWidget::itemChanged, [this] {
-        mController->setCtrl(readCtrl());
+    mChangeConn = connect(this, &QTableWidget::itemChanged, [this] {
+        try {
+            mContr->setCtrl(readCtrl());
+        } catch(exception& e) {
+            QMessageBox::warning(this, "Failure", e.what());
+        }
     });
-    connect(mView, &TdcView::ctrl, this, [this, changeConn](auto status, auto ctrl) mutable {
-        if(status.isEmpty()) {
-            this->disconnect(changeConn);
-            this->fillTable(ctrl);
-            changeConn = this->connect(this, &QTableWidget::itemChanged, [this] {
-                mController->setCtrl(this->readCtrl());
-            });
+    connect(mContr.get(), &TdcController::ctrlChanged,
+            this, &QControlWidget::displayCtrl);
+}
+
+void QControlWidget::updateCtrl() {
+    displayCtrl(mContr->ctrl());
+}
+
+void QControlWidget::displayCtrl(uint16_t ctrl) {
+    this->disconnect(mChangeConn);
+    this->fillTable(ctrl);
+    mChangeConn = this->connect(this, &QTableWidget::itemChanged, [this]{
+        try {
+            mContr->setCtrl(readCtrl());
+        } catch(exception& e) {
+            QMessageBox::warning(this, "Failure", e.what());
         }
     });
 }

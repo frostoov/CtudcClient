@@ -3,8 +3,6 @@
 #include "qchambertable.hpp"
 #include "controllers/expocontroller.hpp"
 #include "controllers/voltagecontroller.hpp"
-#include "views/expoview.hpp"
-#include "views/voltageview.hpp"
 
 #include <thread>
 #include <future>
@@ -33,12 +31,14 @@ class QFrequencyWidget : public QWidget {
 public:
     QFrequencyWidget(std::shared_ptr<ExpoController> expoContr,
                      std::shared_ptr<VoltageController> voltContr,
-                     ExpoView* expoView,
-                     VoltageView* voltView,
                      QWidget* parent = nullptr);
     ~QFrequencyWidget();
 protected:
     void launchLoop();
+    void handleExpoType(QString type);
+signals:
+    void voltFreqReady(int volt, TrekFreq freq);
+    void loopFinished();
 private:
     void createLayouts();
     void createWidgets();
@@ -46,8 +46,6 @@ private:
 private:
     std::shared_ptr<ExpoController> mExpoContr;
     std::shared_ptr<VoltageController> mVoltContr;
-    ExpoView* mExpoView;
-    VoltageView* mVoltView;
 
     State mState;
     std::future<void> mFuture;

@@ -1,44 +1,44 @@
 #pragma once
 
-#include "net/ctudcconn.hpp"
+#include <trek/net/response.hpp>
 
-class ExpoController {
+#include <QObject>
+
+#include <tuple>
+#include <memory>
+#include <array>
+#include <unordered_map>
+
+using ChamberFreq  = std::array<double, 4>;
+using TrekFreq     = std::unordered_map<unsigned, ChamberFreq>;
+
+class CtudcConn;
+
+class ExpoController : public QObject {
+    Q_OBJECT
+    using Handler = std::function<void(const trek::net::Response&)>;
 public:
-    ExpoController(std::shared_ptr<CtudcConn> conn) : mConn(conn) { }
-
-    void type() {
-        mConn->send({"expo", __func__});
-    }
-    void run() {
-        mConn->send({"expo", __func__});
-    }
-    void launchRead() {
-        mConn->send({"expo", __func__});
-    }
-    void stopRead() {
-        mConn->send({"expo", __func__});
-    }
-    void launchFreq(int delay) {
-        mConn->send({"expo", __func__, {delay}});
-    }
-    void stopFreq() {
-        mConn->send({"expo", __func__});
-    }
-    void freq() {
-        mConn->send({"expo", __func__});
-    }
-    void triggerCount() const {
-        mConn->send({"expo", __func__});
-    }
-    void packageCount() const {
-        mConn->send({"expo", __func__});
-    }
-    void chambersCount() const {
-        mConn->send({"expo", __func__});
-    }
-    void duration() const {
-        mConn->send({"expo", __func__});
-    }
+    ExpoController(const std::string& name, std::shared_ptr<CtudcConn> conn);
+    std::string type();
+    unsigned run();
+    void launchRead();
+    void stopRead();
+    void launchFreq(int delay);
+    void stopFreq();
+    TrekFreq freq();
+    std::tuple<uintmax_t, uintmax_t> triggerCount() const;
+    std::tuple<uintmax_t, uintmax_t> packageCount() const;
+    std::tuple<TrekFreq, TrekFreq> chambersCount() const;
+    void handleResponse(const trek::net::Response& r);
+protected:
+    static TrekFreq convertFreq(const trek::net::Response::JsonArray& data);
+    static TrekFreq convertCount(const trek::net::Response::JsonArray& data);
+signals:
+    void typeChanged(QString type);
+    void newRun(unsigned run);
+    void monitoring(TrekFreq freq);
 private:
+    std::string mName;
     std::shared_ptr<CtudcConn> mConn;
+    std::unordered_map<std::string, Handler> mHandlers;
 };

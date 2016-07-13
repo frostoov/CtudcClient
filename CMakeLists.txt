@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 project(CtudcClient)
 
-set( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -pedantic")
+set( CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -pedantic")
 include_directories(${PROJECT_SOURCE_DIR})
 add_definitions(-DQCUSTOMPLOT_USE_LIBRARY )
 
@@ -13,7 +13,6 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set(SOURCES
     net/ctudcconn.cpp
-    net/ctudcclient.cpp
     ui/qconsole.cpp
     ui/qfrequency.cpp
     ui/qsettings.cpp
@@ -25,17 +24,16 @@ set(SOURCES
     ui/qmonitor.cpp
     ui/qchambermonitor.cpp
     ui/qchambertable.cpp
+    controllers/tdccontroller.cpp
+    controllers/expocontroller.cpp
+    controllers/voltagecontroller.cpp
     configparser/appconfigparser.cpp
+    appsettings.cpp 
     main.cpp
-    views/view.cpp
-    views/tdcview.cpp
-    views/expoview.cpp
-    views/voltageview.cpp
 )
 
 set(HEADERS
     net/ctudcconn.hpp
-    net/ctudcclient.hpp
     ui/qconsole.hpp
     ui/qvoltage.hpp
     ui/qsettings.hpp
@@ -48,23 +46,23 @@ set(HEADERS
     ui/qchambermonitor.hpp
     ui/qchambertable.hpp
     controllers/tdccontroller.hpp
+    controllers/expocontroller.hpp
     controllers/voltagecontroller.hpp
     tdc/tdc.hpp
     configparser/configparser.hpp
     configparser/appconfigparser.hpp
-    views/view.hpp
-    views/tdcview.hpp
-    views/expoview.hpp
-    views/voltageview.hpp
+    appsettings.hpp
 )
 
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
+set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 14)
+
 set(Boost_USE_STATIC_LIBS ON)
 find_package(
 	Boost
-	1.55.
+	1.60.0
 	COMPONENTS
 	system
         filesystem

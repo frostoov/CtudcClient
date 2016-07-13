@@ -1,13 +1,8 @@
 #pragma once
 
-#include "net/ctudcconn.hpp"
-#include "net/ctudcclient.hpp"
 #include "controllers/tdccontroller.hpp"
 #include "controllers/voltagecontroller.hpp"
 #include "controllers/expocontroller.hpp"
-#include "views/voltageview.hpp"
-#include "views/expoview.hpp"
-#include "views/tdcview.hpp"
 
 #include "qfrequency.hpp"
 #include "qstatus.hpp"
@@ -17,29 +12,39 @@
 #include "qvoltage.hpp"
 #include "qmonitor.hpp"
 
+
+
 #include <QMainWindow>
 #include <QLabel>
 #include <QPushButton>
 
 #include <memory>
 
+
+namespace trek {
+namespace net {
+class MulticastReceiver;
+}
+}
+
 class MainWindow : public QMainWindow {
     Q_OBJECT
 public:
-    MainWindow(std::shared_ptr<CtudcConn> conn, QWidget* parent = nullptr);
+    MainWindow(std::shared_ptr<CtudcConn> conn,
+               std::shared_ptr<trek::net::MulticastReceiver> recv,
+               QWidget* parent = nullptr);
     ~MainWindow();
 protected:
     void setupGUI();
 private:
     std::shared_ptr<CtudcConn> mConn;
+    std::shared_ptr<trek::net::MulticastReceiver> mRecv;
+    
     std::shared_ptr<TdcController> mTdcContr;
     std::shared_ptr<VoltageController> mVoltContr;
     std::shared_ptr<ExpoController> mExpoContr;
 
-    CtudcClient mClient;
-    TdcView* mTdcView;
-    VoltageView* mVoltView;
-    ExpoView* mExpoView;
+    std::thread mRecvThread;
 private:
     QStatusWidget*    mStatus;
     QControlWidget*   mControl;

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "controllers/voltagecontroller.hpp"
-#include "views/voltageview.hpp"
 
 #include <qcustomplot.h>
 
@@ -17,7 +16,6 @@ class QVoltageWidget : public QSplitter {
     Q_OBJECT
 public:
     explicit QVoltageWidget(std::shared_ptr<VoltageController> controller,
-                            VoltageView* view,
                             QWidget* parent = nullptr);
 protected:
     void setupGUI();
@@ -26,8 +24,7 @@ protected:
     void updateGraph(QCPGraph& graph, int val);
     void updateCell(const std::string& type);
 private:
-    std::shared_ptr<VoltageController> mController;
-    VoltageView* mView;
+    std::shared_ptr<VoltageController> mContr;
 
     QHash<QString, QLineEdit*> mVolt;
     QHash<QString, QLineEdit*> mStatus;
@@ -39,7 +36,7 @@ private:
     QPushButton* mOpen;
     QPushButton* mToggle;
     QPushButton* mUpdate;
-    int mFreq;
+    QLineEdit* mTick;
 
     QTimer* timer;
 };

@@ -1,5 +1,9 @@
 #include "mainwindow.hpp"
 
+#include "net/ctudcconn.hpp"
+#include <trek/net/multicastreceiver.hpp>
+#include <trek/net/response.hpp>
+
 #include <iostream>
 #include <stdexcept>
 #include <QBoxLayout>
@@ -7,76 +11,117 @@
 #include <QGroupBox>
 #include <QMessageBox>
 
+
+using trek::net::MulticastReceiver;
+using trek::net::Response;
+
 using std::string;
 using std::function;
 using std::ostringstream;
 using std::exception;
 using std::make_shared;
+using std::shared_ptr;
 
-MainWindow::MainWindow(std::shared_ptr<CtudcConn> conn, QWidget* parent)
+MainWindow::MainWindow(shared_ptr<CtudcConn> conn,
+                       shared_ptr<MulticastReceiver> recv,
+                       QWidget* parent)
     : QMainWindow(parent),
       mConn(conn),
-      mTdcContr(make_shared<TdcController>(mConn)),
-      mVoltContr(make_shared<VoltageController>(mConn)),
-      mExpoContr(make_shared<ExpoController>(mConn)),
-      mTdcView(new TdcView(this)),
-      mVoltView(new VoltageView(this)),
-      mExpoView(new ExpoView(this)),
-      mStatus(new QStatusWidget (mTdcContr, mTdcView, this)),
-      mControl(new QControlWidget (mTdcContr, mTdcView, this)),
-      mSettings(new QSettingsWidget (mTdcContr, mTdcView, this)),
-      mFrequency(new QFrequencyWidget(mExpoContr, mVoltContr, mExpoView, mVoltView)),
-      mVoltage(new QVoltageWidget(mVoltContr, mVoltView)),
-      mMonitor(new QMonitor(mExpoContr, mExpoView)) {
-    mClient.addView(mTdcView);
-    mClient.addView(mVoltView);
-    mClient.addView(mExpoView);
-    mConn->onRecv([this](auto & resp) {
-        if(!resp.status.empty()) {
-            emit this->serverFail(QString::fromStdString(resp.object),
-                                  QString::fromStdString(resp.method),
-                                  QString::fromStdString(resp.status));
+      mRecv(recv),
+      mTdcContr(make_shared<TdcController>("tdc", mConn)),
+      mVoltContr(make_shared<VoltageController>("vlt", mConn)),
+      mExpoContr(make_shared<ExpoController>("expo", mConn)),
+      mStatus(new QStatusWidget (mTdcContr, this)),
+      mControl(new QControlWidget (mTdcContr, this)),
+      mSettings(new QSettingsWidget (mTdcContr, this)),
+      mFrequency(new QFrequencyWidget(mExpoContr, mVoltContr)),
+      mVoltage(new QVoltageWidget(mVoltContr)),
+      mMonitor(new QMonitor(mExpoContr)) {
+    mRecv->onRecv([&](const auto& r) {
+        try {
+            auto response = Response({r.begin(), r.end()});
+            std::cout << "udp: " << string(response) << std::endl;
+            if(response.object == "tdc") {
+                mTdcContr->handleResponse(response);
+            } else if(response.object == "vlt") {
+                mVoltContr->handleResponse(response);
+            } else if(response.object == "expo") {
+                mExpoContr->handleResponse(response);
+            }
+        } catch(...) {
+            //TODO
         }
-        mClient.handleReponse(resp);
+    });
+    mRecvThread = std::thread([&]{
+        mRecv->run();
     });
     resize(800, 600);
 
     setupGUI();
 
-    connect(this, &MainWindow::serverFail, this, [this](QString obj, QString method, QString status) {
-        QMessageBox::warning(this, "Failure",
-                             tr("%1.%2: %3")
-                             .arg(obj)
-                             .arg(method)
-                             .arg(status));
-    });
-
     connect(mRefresh, &QPushButton::clicked, this, [this](auto) {
-        mTdcContr->isOpen();
-        mTdcContr->settings();
-        mTdcContr->mode();
-        mTdcContr->ctrl();
-        mTdcContr->stat();
-        mTdcContr->tdcMeta();
+        try {
+            auto type = mExpoContr->type();
+            mStart->setEnabled(type == "idle" || type == "expo");
+            if(type == "idle")
+                mStart->setText("Start");
+            else if(type == "expo")
+                mStart->setText("Stop");
+            auto isOpen = mTdcContr->isOpen();
+            mOpen->setText(isOpen ? "Close" : "Open");
+            if(isOpen) {
+                mSettings->updateSettings();
+                mSettings->updateMode();
+                mSettings->updateTdcMeta();
+                
+                mControl->updateCtrl();
+                mStatus->updateStatus();
+                mMonitor->updateState();
+            }
+        } catch(exception& e) {
+            QMessageBox::warning(this, "failure", e.what());
+        }
     });
 
     connect(mOpen, &QPushButton::clicked, this, [this] {
-        if(mOpen->text() == "Open")
-            mTdcContr->open();
-        else
-            mTdcContr->close();
+        try {
+            if(mOpen->text() == "Open") {
+                mTdcContr->open();
+                mOpen->setText("Close");
+            } else {
+                mTdcContr->close();
+                mOpen->setText("Open");
+            }
+        } catch(exception& e) {
+            QMessageBox::warning(this, "tdc open", e.what());
+        }
     });
     connect(mClear, &QPushButton::clicked, this, [this] {
-        mTdcContr->clear();
+        try {
+            mTdcContr->clear();
+        } catch(exception& e) {
+            QMessageBox::warning(this, "tdc clear", e.what());
+        }
     });
     connect(mReset, &QPushButton::clicked, this, [this] {
-        mTdcContr->reset();
+        try {
+            mTdcContr->reset();
+        } catch(exception& e) {
+            QMessageBox::warning(this, "tdc reset", e.what());
+        }
     });
     connect(mStart, &QPushButton::clicked, this, [this] {
-        if(mStart->text() == "Start")
-            mExpoContr->launchRead();
-        else if(mStart->text() == "Stop")
-            mExpoContr->stopRead();
+        try {
+            if(mStart->text() == "Start") {
+                mExpoContr->launchRead();
+                mStart->setText("Stop");
+            } else if(mStart->text() == "Stop") {
+                mExpoContr->stopRead();
+                mStart->setText("Start");
+            }
+        } catch(exception& e) {
+            QMessageBox::warning(this, "expo", e.what());
+        }
     });
     connect(voltB, &QPushButton::clicked, this, [this] {
         if(mVoltage->isVisible())
@@ -96,39 +141,27 @@ MainWindow::MainWindow(std::shared_ptr<CtudcConn> conn, QWidget* parent)
         else
             mMonitor->hide();
     });
-    connect(mExpoView, &ExpoView::type, this, [this](auto status, auto type) {
-        static bool single = true;
-        if(status.isEmpty()) {
-            mStart->setEnabled(type == "idle" || type == "expo");
-            if(type == "idle")
-                mStart->setText("Start");
-            else if(type == "expo")
-                mStart->setText("Stop");
-            if(single && type == "expo") {
-                mExpoContr->run();
-                single = false;
-            }
-        }
+    connect(mExpoContr.get(), &ExpoController::typeChanged, this, [this](auto type) {
+        mStart->setEnabled(type == "idle" || type == "expo");
+        if(type == "idle")
+            mStart->setText("Start");
+        else if(type == "expo")
+            mStart->setText("Stop");
     });
 
-    connect(mTdcView, &TdcView::isOpen, this, [this](auto status, auto isOpen) {
-        static bool single = true;
-        if(status.isEmpty()) {
-            mOpen->setText(isOpen ? "Close" : "Open");
-            if(single && isOpen) {
-                mRefresh->click();
-                single = false;
-            };
-        }
+    connect(mTdcContr.get(), &TdcController::stateChanged, this, [this](auto isOpen) {        
+        mOpen->setText(isOpen ? "Close" : "Open");
     });
-    mTdcContr->isOpen();
-    mExpoContr->type();
+    mRefresh->click();
+    mMonitor->refresh();
 }
 
 MainWindow::~MainWindow() {
     delete mFrequency;
     delete mVoltage;
     delete mMonitor;
+    mRecv->stop();
+    mRecvThread.join();
 }
 
 void MainWindow::setupGUI() {

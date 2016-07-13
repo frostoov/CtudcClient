@@ -1,100 +1,80 @@
 #include "ctudcconn.hpp"
 
-#include <chrono>
-#include <cassert>
-
+#include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/asio/read.hpp>
+
 #include <trek/common/timeprint.hpp>
 
-#include <QIODevice>
+#include <mutex>
 
 using trek::net::Request;
 using trek::net::Response;
 
-using boost::asio::async_read;
-using boost::asio::async_write;
+namespace asio = boost::asio;
 
 using std::runtime_error;
 using std::string;
+using std::vector;
 using std::lock_guard;
 using std::mutex;
-using std::string;
-using std::chrono::system_clock;
+using std::make_unique;
 
 namespace asio = boost::asio;
 
+class CtudcConn::impl {
+public:
+    impl(const string& addr, uint16_t port)
+        : mSocket(mIoService) {
+        connect(addr, port);
+    }
 
-CtudcConn::CtudcConn()
-    : mSocket(mIoService) {
+    ~impl() {
+        disconnect();
+    }
+    
+    void connect(const string& addr, uint16_t port) {
+        auto endpoint = asio::ip::tcp::endpoint(asio::ip::address::from_string(addr), port);
+        mSocket.connect(endpoint);
+    }
+    
+    void disconnect() {
+        mSocket.cancel();
+        mSocket.shutdown(mSocket.shutdown_both);
+    }
 
-}
-
-CtudcConn::CtudcConn(const string& hostName, uint16_t port)
-    : mSocket(mIoService) {
-    connect(hostName, port);
-}
-
-CtudcConn::~CtudcConn() {
-    disconnect();
-}
-
-void CtudcConn::connect(const string& hostName, uint16_t port) {
-    auto addr = asio::ip::address::from_string(hostName);
-    asio::ip::tcp::endpoint ep(addr, port);
-    mSocket.connect(ep);
-    run();
-}
-
-void CtudcConn::disconnect() {
-    mSocket.cancel();
-    mIoService.stop();
-    if(mThread.joinable())
-        mThread.join();
-}
-
-void CtudcConn::run() {
-    recv();
-    mIoService.reset();
-    mThread = std::thread([this] {
-        mIoService.run();
-    });
-}
-
-void CtudcConn::recv() {
-    async_read(mSocket, asio::buffer(&mMsgSize, sizeof(mMsgSize)), [this](auto & errCode, auto l) {
-        if(errCode || l != sizeof(mMsgSize)) {
-            std::cout << "Failed recv msg: " << errCode << ". restart app please" << std::endl;
-            return;
+    Response send(const Request& request) {
+        auto str = string(request);
+        auto length = uint64_t(str.size());
+        auto buf = vector<char>();
+        {
+            std::lock_guard<std::mutex> lk(mMutex);
+            asio::write(mSocket, asio::buffer(&length, sizeof(length)));
+            asio::write(mSocket, asio::buffer(str));
+            asio::read(mSocket, asio::buffer(&length, sizeof(length)));
+            buf.resize(length);
+            asio::read(mSocket, asio::buffer(buf));
         }
-        mBuffer.resize(mMsgSize);
-        async_read(mSocket, asio::buffer(mBuffer), [this] (auto & errCode, auto l) {
-            if(errCode || mBuffer.size() != l) {
-                std::cout << "Failed recv msg: " << errCode << ". restart app please" << std::endl;
-                return;
-            }
-            auto msg = std::string(mBuffer.data(), mBuffer.size());
-            std::cout << "Recv: " << msg << std::endl;
-            mOnRecv(Response(msg));
-            this->recv();
-        });
-    });
-}
+        auto response = Response({buf.begin(), buf.end()});
+        std::cout << "send: " << string(request) << std::endl;
+        std::cout << "recv: " << string(response) << std::endl;
+        if(!response.status.empty())
+            throw runtime_error(string("CtudcServer failed handle response") + response.status);
+        return response;
+    }
+private:
+    boost::asio::io_service mIoService;
+    boost::asio::ip::tcp::endpoint mEndpoint;
+    boost::asio::ip::tcp::socket mSocket;
 
-void CtudcConn::send(const Request& request) {
-    auto rawRequest = string(request);
-    uint64_t length = rawRequest.size();
-    std::ostringstream stream;
-    stream.write(reinterpret_cast<char*>(&length), sizeof(length));
-    stream << rawRequest;
-    async_write(mSocket, asio::buffer(stream.str()), [this, rawRequest](auto & errCode, auto) {
-        if(errCode) {
-            std::cout << "Failed send msg: " << errCode << ". restart app please" << std::endl;
-        }
-        //TODO
-    });
-}
+    std::mutex mMutex;
+};
 
-void CtudcConn::onRecv(const RecvCallback& callback) {
-    mOnRecv = callback;
+CtudcConn::CtudcConn(const string& addr, uint16_t port)
+    : mImpl(make_unique<impl>(addr, port)) { }
+
+CtudcConn::~CtudcConn() { }
+
+Response CtudcConn::send(const Request& request) {
+    return mImpl->send(request);
 }

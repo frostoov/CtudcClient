@@ -13,11 +13,9 @@ using std::exception;
 using std::string;
 
 QStatusWidget::QStatusWidget(shared_ptr<TdcController> controller,
-                             TdcView* view,
                              QWidget* parent)
     : QTableWidget(parent),
-      mController(controller),
-      mView(view) {
+      mContr(controller) {
     setRowCount(15);
     setColumnCount(2);
     createItems();
@@ -27,10 +25,13 @@ QStatusWidget::QStatusWidget(shared_ptr<TdcController> controller,
     horizontalHeader()->hide();
     verticalHeader()->hide();
 
-    connect(mView, &TdcView::stat, this, [this](auto status, auto stat) {
-        if(status.isEmpty())
-            this->fillTable(stat);
+    connect(mContr.get(), &TdcController::statChanged, this, [this](auto stat) {
+        fillTable(stat);
     });
+}
+
+void QStatusWidget::updateStatus() {
+    fillTable(mContr->stat());
 }
 
 void QStatusWidget::createItems() {

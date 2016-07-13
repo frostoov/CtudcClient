@@ -1,7 +1,6 @@
 #pragma once
 
 #include "controllers/expocontroller.hpp"
-#include "views/expoview.hpp"
 #include "qchambermonitor.hpp"
 #include "qchambertable.hpp"
 

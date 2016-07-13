@@ -8,20 +8,19 @@ using std::shared_ptr;
 using std::exception;
 
 constexpr auto cellList = {"drift", "signal"};
+constexpr int defaultTick = 10;
 
 QVoltageWidget::QVoltageWidget(shared_ptr<VoltageController> controller,
-                               VoltageView* view,
                                QWidget* parent)
     : QSplitter(parent),
-      mController(controller),
-      mView(view),
-      mFreq(10) {
+      mContr(controller),
+      mTick(new QLineEdit(QString::number(defaultTick), this)) {
     setupGUI();
     for(auto& name : cellList)
         setupPlot(*mPlot[name], name);
 
     timer = new QTimer(this);
-    timer->setInterval(mFreq * 1000);
+    timer->setInterval(defaultTick * 1000);
     timer->setSingleShot(false);
 
     createConnections();
@@ -32,19 +31,35 @@ void QVoltageWidget::createConnections() {
     //Controller connections
     for(auto& name : cellList) {
         connect(mVolt[name], &QLineEdit::returnPressed, this, [this, name] {
-            mController->setVoltage(name, mVolt[name]->text().toInt());
+            try {
+                mContr->setVoltage(name, mVolt[name]->text().toInt());
+            } catch(exception& e) {
+                QMessageBox::warning(this, "set voltage", e.what());
+            }
         });
         connect(mSpeedUp[name], &QLineEdit::returnPressed, this, [this, name] {
-            mController->setSpeedUp(name, mSpeedUp[name]->text().toInt());
+            try {
+                mContr->setSpeedUp(name, mSpeedUp[name]->text().toInt());
+            } catch(exception& e) {
+                QMessageBox::warning(this, "set speed up", e.what());
+            }
         });
         connect(mSpeedDn[name], &QLineEdit::returnPressed, this, [this, name] {
-            mController->setSpeedDn(name, mSpeedDn[name]->text().toInt());
+            try {
+                mContr->setSpeedDn(name, mSpeedDn[name]->text().toInt());
+            } catch(exception& e) {
+                QMessageBox::warning(this, "set speed down", e.what());
+            }
         });
         connect(mState[name], &QCheckBox::clicked, this, [this, name](auto flag) {
-            if(flag)
-                mController->turnOn(name);
-            else
-                mController->turnOff(name);
+            try {
+                if(flag)
+                    mContr->turnOn(name);
+                else
+                    mContr->turnOff(name);
+            } catch(exception& e) {
+                QMessageBox::warning(this, "change state", e.what());
+            }
         });
     }
 
@@ -56,59 +71,55 @@ void QVoltageWidget::createConnections() {
         mToggle->setText(timer->isActive() ? "Stop" : "Start");
     });
     connect(mUpdate, &QPushButton::clicked, this, [this](auto flag) {
-        mController->isOpen();
-        for(auto& name : cellList)
-            this->updateCell(name);
+        try {
+            auto isOpen = mContr->isOpen();
+            mOpen->setText(isOpen ? "Close" : "Open");
+            if(!isOpen) return;
+            for(auto& name : cellList) {
+                this->updateCell(name);
+                mSpeedUp[name]->setText(QString::number(mContr->speedUp(name)));
+                mSpeedDn[name]->setText(QString::number(mContr->speedDn(name)));
+                auto stat = mContr->stat(name);
+                mStatus[name]->setText(QString::fromStdString(stat));
+                mState[name]->setChecked(stat.gs());
+            }
+        } catch(exception& e) {
+            QMessageBox::warning(this, "updated", e.what());
+        }
     });
     connect(mOpen, &QPushButton::clicked, this, [this](auto flag) {
-        if(mOpen->text() == "Open")
-            mController->open();
-        else if(mOpen->text() == "Close")
-            mController->close();
+        try {
+            if(mOpen->text() == "Open") {
+                mContr->open();
+                mOpen->setText("Close");
+                mUpdate->click();
+            } else if(mOpen->text() == "Close") {
+                mContr->close();
+                mOpen->setText("Open");
+            }
+        } catch(exception& e) {
+            QMessageBox::warning(this, "open", e.what());
+        }
     });
     connect(timer, &QTimer::timeout, this, [this] {
         for(auto& name : cellList)
             this->updateCell(name);
     });
-    //View connections
-    connect(mView, &VoltageView::voltage, this, [this](auto status, auto type, auto val) {
-        if(status.isEmpty()) {
-            QCustomPlot& plot = *mPlot[type];
-            this->updateGraph(*plot.graph(0), val);
-            plot.rescaleAxes();
-            plot.yAxis->setRange( {0, plot.yAxis->range().upper} );
-            plot.yAxis2->setRange( {0, plot.yAxis2->range().upper} );
-            plot.replot();
-        }
+
+    connect(mContr.get(), &VoltageController::speedUpChanged, this, [this](auto device, auto val) {
+        mSpeedUp[device]->setText(QString::number(val));
     });
-    connect(mView, &VoltageView::amperage, this, [this](auto status, auto type, auto val) {
-        if(status.isEmpty()) {
-            QCustomPlot& plot = *mPlot[type];
-            this->updateGraph(*plot.graph(1), val);
-            plot.rescaleAxes();
-            plot.yAxis->setRange( {0, plot.yAxis->range().upper} );
-            plot.yAxis2->setRange( {0, plot.yAxis2->range().upper} );
-            plot.replot();
-        }
+    connect(mContr.get(), &VoltageController::speedDnChanged, this, [this](auto device, auto val) {
+        mSpeedDn[device]->setText(QString::number(val));
     });
-    connect(mView, &VoltageView::speedUp, this, [this](auto status, auto type, auto val) {
-        if(status.isEmpty())
-            mSpeedUp[type]->setText(QString::number(val));
+    connect(mContr.get(), &VoltageController::statChanged, this, [this](auto device, auto stat) {
+        mStatus[device]->setText(QString::fromStdString(stat));
+        mState[device]->setChecked(stat.gs());
     });
-    connect(mView, &VoltageView::speedDn, this, [this](auto status, auto type, auto val) {
-        if(status.isEmpty())
-            mSpeedDn[type]->setText(QString::number(val));
+    connect(mContr.get(), &VoltageController::stateChanged, this, [this](auto flag) {
+        mOpen->setText(flag ? "Close" : "Open");
     });
-    connect(mView, &VoltageView::stat, this, [this](auto status, auto type, VoltageView::Stat stat) {
-        if(status.isEmpty()) {
-            mStatus[type]->setText(QString::fromStdString(stat));
-            mState[type]->setChecked(stat.gs());
-        }
-    });
-    connect(mView, &VoltageView::isOpen, this, [this](auto status, auto flag) {
-        if(status.isEmpty())
-            mOpen->setText(flag ? "Close" : "Open");
-    });
+    mUpdate->click();
 }
 
 void QVoltageWidget::setupGUI() {
@@ -137,24 +148,21 @@ void QVoltageWidget::setupGUI() {
     mToggle = new QPushButton("Start");
     mUpdate = new QPushButton("Update");
 
-    auto freq = new QLineEdit("10");
-    connect(freq, &QLineEdit::returnPressed, [this, freq] {
-        mFreq = freq->text().toInt() > 0 ? freq->text().toInt() : 1;
-        freq->setText(QString::number(mFreq));
-        if(timer->interval() * 1000 != mFreq) {
-            timer->setInterval(1000 * mFreq);
-            if(timer->isActive())
-                timer->start();
-        }
+    connect(mTick, &QLineEdit::editingFinished, [this] {
+        auto freq = mTick->text().toInt();
+        if(freq <= 0)
+            freq = 1;
+        mTick->setText(QString::number(freq));
+        timer->setInterval(1000 * freq);
         for(auto& plot : mPlot)
-            plot->xAxis->setTickStep(4 * mFreq);
+            plot->xAxis->setTickStep(4 * freq);
     });
 
     auto actionLayout = new QFormLayout;
     actionLayout->addRow(mOpen);
     actionLayout->addRow(mToggle);
     actionLayout->addRow(mUpdate);
-    actionLayout->addRow("Frequency", freq);
+    actionLayout->addRow("Frequency", mTick);
     auto actionGroup = new QGroupBox("Actions");
     actionGroup->setLayout(actionLayout);
     controlLayout->addWidget(actionGroup);
@@ -218,13 +226,26 @@ void QVoltageWidget::setupPlot(QCustomPlot& plot, const QString& name) {
 void QVoltageWidget::updateGraph(QCPGraph& graph, int val) {
     auto key = double(QDateTime::currentMSecsSinceEpoch()) / 1000;
     graph.addData(key, val);
-    graph.removeDataBefore(key - 50 * mFreq);
+    graph.removeDataBefore(key - 50 * mTick->text().toInt());
 }
 
 void QVoltageWidget::updateCell(const std::string& type) {
-    mController->voltage(type);
-    mController->amperage(type);
-    mController->speedUp(type);
-    mController->speedDn(type);
-    mController->stat(type);
+    auto voltage = mContr->voltage(type);
+    auto amperage = mContr->amperage(type);
+    {
+        QCustomPlot& plot = *mPlot[QString::fromStdString(type)];
+        updateGraph(*plot.graph(0), voltage);
+        plot.rescaleAxes();
+        plot.yAxis->setRange( {0, plot.yAxis->range().upper} );
+        plot.yAxis2->setRange( {0, plot.yAxis2->range().upper} );
+        plot.replot();
+    }
+    {
+        QCustomPlot& plot = *mPlot[QString::fromStdString(type)];
+        updateGraph(*plot.graph(1), amperage);
+        plot.rescaleAxes();
+        plot.yAxis->setRange( {0, plot.yAxis->range().upper} );
+        plot.yAxis2->setRange( {0, plot.yAxis2->range().upper} );
+        plot.replot();
+    }
 }

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "controllers/expocontroller.hpp"
-#include "views/expoview.hpp"
 #include "qchambermonitor.hpp"
 #include "qchambertable.hpp"
 
@@ -21,9 +20,12 @@ class QMonitor : public QSplitter {
     using ArrayPtr = std::unique_ptr<std::array<T, N> >;
 public:
     QMonitor(std::shared_ptr<ExpoController> expoContr,
-             ExpoView* expoView,
              QWidget* parent = nullptr);
+    void updateState();
 protected:
+    void handleExpoType(const QString& type);
+    void launchMonitoring();
+    void stopMonitoring();
     void setupGUI();
     QCustomPlot* createMetaPlot(const QString& title, const QVector<QString>& names);
 
@@ -33,10 +35,11 @@ protected:
     ChamberFreq convertCount(const ChamberFreq& current, const ChamberFreq& prev, int sec);
     TrekFreq convertCount(const TrekFreq& current, const TrekFreq& prev, int sec);
     uintmax_t reduceCount(const TrekFreq& count);
+    void updatePackageCount(uintmax_t count,  uintmax_t drop);
+    void updateTriggerCount(uintmax_t count, uintmax_t drop);
+    void updateChambersCount(const TrekFreq& count, const TrekFreq& drop);
 private:
     std::shared_ptr<ExpoController> mExpoContr;
-
-    ExpoView* mExpoView;
 
     std::array<QCustomPlot*, 3> mPlots;
     std::array<QChamberMonitor*, 16> mChambers;

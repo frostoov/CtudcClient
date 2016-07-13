@@ -1,6 +1,6 @@
 #pragma once
 
-#include "views/expoview.hpp"
+#include "controllers/expocontroller.hpp"
 
 #include <qcustomplot.h>
 

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "controllers/tdccontroller.hpp"
-#include "views/tdcview.hpp"
 
 #include <QCheckBox>
 #include <QLineEdit>
@@ -12,14 +11,18 @@
 class QSettingsWidget : public QGroupBox {
 public:
     explicit QSettingsWidget(std::shared_ptr<TdcController> controller,
-                             TdcView* view,
                              QWidget* parent = nullptr);
+    void updateSettings();
+    void updateTdcMeta();
+    void updateMode();
 protected:
+    void displaySettings(const Tdc::Settings& settings);
+    void displayTdcMeta(bool flag);
+    void displayMode(Tdc::Mode mode);
     void setupGUI();
     static int lsb2index(unsigned lsb);
 private:
-    std::shared_ptr<TdcController> mController;
-    TdcView*       mView;
+    std::shared_ptr<TdcController> mContr;
 
     QCheckBox*   mMode;
     QCheckBox*   mTdcMeta;

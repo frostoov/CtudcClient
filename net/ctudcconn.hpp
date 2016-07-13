@@ -3,34 +3,15 @@
 #include <trek/net/request.hpp>
 #include <trek/net/response.hpp>
 
-#include <mutex>
-#include <thread>
-#include <boost/asio/ip/tcp.hpp>
+#include <memory>
 
 class CtudcConn {
-    using Buffer = std::vector<char>;
-    using Socket = boost::asio::ip::tcp::socket;
-    using RecvCallback = std::function<void(const trek::net::Response& response)>;
+    class impl;
 public:
-    CtudcConn();
-    CtudcConn(const std::string& hostName, uint16_t port);
+    CtudcConn(const std::string& addr, uint16_t port);
     ~CtudcConn();
-    void connect(const std::string& hostName, uint16_t port);
-    void disconnect();
-    void send(const trek::net::Request& request);
-    void onRecv(const RecvCallback& callback);
-protected:
-    void run();
-    void recv();
+    trek::net::Response send(const trek::net::Request& request);
 private:
-    boost::asio::io_service mIoService;
-    Socket mSocket;
+    std::unique_ptr<impl> mImpl;
 
-    Buffer mBuffer;
-    uint64_t mMsgSize;
-
-    RecvCallback mOnRecv;
-
-    std::thread mThread;
-    std::mutex mMutex;
 };

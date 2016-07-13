@@ -12,17 +12,14 @@
 using std::chrono::seconds;
 using std::chrono::microseconds;
 using std::shared_ptr;
+using std::exception;
 
 QFrequencyWidget::QFrequencyWidget(shared_ptr<ExpoController> expoContr,
                                    shared_ptr<VoltageController> voltContr,
-                                   ExpoView* expoView,
-                                   VoltageView* voltView,
                                    QWidget* parent)
     : QWidget(parent),
       mExpoContr(expoContr),
       mVoltContr(voltContr),
-      mExpoView(expoView),
-      mVoltView(voltView),
       mState(State::None) {
     qRegisterMetaType<TrekFreq>("TrekFreq");
     createWidgets();
@@ -30,57 +27,52 @@ QFrequencyWidget::QFrequencyWidget(shared_ptr<ExpoController> expoContr,
     packWidgets();
 
     connect(launchFreq, &QPushButton::clicked, this, [this] {
-        if(launchFreq->text() == "Start freq") {
-            mState = State::Freq;
-            mExpoContr->launchFreq(100);
-            mFreqConn = connect(mExpoView, &ExpoView::freq, this, [this](auto status, auto freq) {
-                if(status.isEmpty()) {
-                    mTable->setTrekFreq(freq);
-                    mTable->update();
-                }
-                this->disconnect(mFreqConn);
-            });
-        } else if(launchFreq->text() == "Stop freq") {
-            mExpoContr->stopFreq();
-            mExpoContr->freq();
-            mState = State::None;
+        try {
+            if(launchFreq->text() == "Start freq") {
+                mExpoContr->launchFreq(100);
+                mState = State::Freq;
+            } else if(launchFreq->text() == "Stop freq") {
+                mExpoContr->stopFreq();
+                mTable->setTrekFreq(mExpoContr->freq());
+                mTable->update();
+                mState = State::None;
+            }
+        } catch(exception& e) {
+            QMessageBox::warning(this, "Frequency", e.what());
         }
     });
     connect(startLoop, &QPushButton::clicked, this, [this] {
-        if(startLoop->text() == "Start loop") {
-            mState = State::Loop;
-            launchLoop();
-            mFreqConn = connect(mExpoView, &ExpoView::freq, this, [this](auto status, auto freq) {
-                auto code = startVolt->text().toInt();
-                auto step = stepVolt->text().toInt();
-                startVolt->setText(QString::number(code + step));
-                if(status.isEmpty()) {
-                    loopWidget->addFreq(code, freq);
-                    loopWidget->updateData();
-                }
-                if(code >= endVolt->text().toInt()) {
-                    startVolt->setText("0");
-                    this->disconnect(mFreqConn);
-                }
-            });
-        } else if(startLoop->text() == "Stop loop") {
-            mLoopActive.store(false);
+        try {
+            if(startLoop->text() == "Start loop") {
+                launchLoop();
+                mState = State::Loop;
+            } else if(startLoop->text() == "Stop loop") {
+                mLoopActive.store(false);
+            }
+        } catch(exception& e) {
+            QMessageBox::warning(this, "Frequency loop", e.what());
+        }
+    });
+
+    connect(this, &QFrequencyWidget::loopFinished, this, [this] {
+        if(mState != State::Loop)
+            throw std::logic_error("loopFinished mState != State::Loop");
+        mLoopActive.store(false);
+        mState = State::None;
+        try {
+            auto type = mExpoContr->type();
+            handleExpoType(QString::fromStdString(type));
+        } catch(...) {
+            //TODO
         }
     });
 
     //View connections
-    connect(mExpoView, &ExpoView::type, this, [this](auto status, auto type) {
-        if(status.isEmpty()) {
-            if(type == "idle") {
-                launchFreq->setText("Start freq");
-                startLoop->setText("Start loop");
-            } else if(type == "freq") {
-                if(mState == State::Freq) launchFreq->setText("Stop freq");
-                if(mState == State::Loop) startLoop->setText("Stop loop");
-            }
-            launchFreq->setEnabled((mState == State::Freq || mState == State::None) && (type == "idle" || type == "freq"));
-            startLoop->setEnabled((mState == State::Loop || mState == State::None) && (type == "idle" || type == "freq"));
-        }
+    connect(mExpoContr.get(), &ExpoController::typeChanged,
+            this, &QFrequencyWidget::handleExpoType);
+    connect(this, &QFrequencyWidget::voltFreqReady, this, [this](auto volt, auto freq) {
+        loopWidget->addFreq(volt, freq);
+        loopWidget->updateData();
     });
 
     resize(800, 600);
@@ -88,6 +80,23 @@ QFrequencyWidget::QFrequencyWidget(shared_ptr<ExpoController> expoContr,
 
 QFrequencyWidget::~QFrequencyWidget() {
     //TODO
+}
+
+void QFrequencyWidget::handleExpoType(QString type) {
+    if(type == "idle") {
+        if(mState == State::None) {
+            launchFreq->setText("Start freq");
+            startLoop->setText("Start loop");
+        }
+    } else if(type == "freq") {
+        if(mState == State::Freq)
+            launchFreq->setText("Stop freq");
+        if(mState == State::Loop)
+            startLoop->setText("Stop loop");
+    }
+    launchFreq->setEnabled((mState == State::Freq || mState == State::None) && (type == "idle" || type == "freq"));
+    startLoop->setEnabled((mState == State::Loop || mState == State::None) && (type == "idle" || type == "freq"));
+
 }
 
 void QFrequencyWidget::createLayouts() {
@@ -138,16 +147,22 @@ void QFrequencyWidget::launchLoop() {
     mLoopActive.store(true);
     loopWidget->clearData();
 
+    auto type = mExpoContr->type();
+    if(type != "idle")
+        throw std::runtime_error("launchLoop expo is not idle");
     mFuture = std::async(std::launch::async, [this, start, end, step, time, cooldown] {
-        for(int volt = start; volt <= end && mLoopActive.load(); volt += step) {
-            mVoltContr->setVoltage("signal", volt);
-            std::this_thread::sleep_for(seconds(cooldown));
-            mExpoContr->launchFreq(100);
-            std::this_thread::sleep_for(seconds(time));
-            mExpoContr->stopFreq();
-            mExpoContr->freq();
+        try {
+            for(int volt = start; volt <= end && mLoopActive.load(); volt += step) {
+                mVoltContr->setVoltage("signal", volt);
+                std::this_thread::sleep_for(seconds(cooldown));
+                mExpoContr->launchFreq(100);
+                std::this_thread::sleep_for(seconds(time));
+                mExpoContr->stopFreq();
+                emit voltFreqReady(volt, mExpoContr->freq());
+            }
+        } catch(exception& e) {
+            std::cerr << "freq loop: " << e.what() << std::endl;
         }
-        mLoopActive.store(false);
-        mState = State::None;
+        emit loopFinished();
     });
 }

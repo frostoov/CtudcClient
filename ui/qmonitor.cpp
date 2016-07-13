@@ -9,28 +9,41 @@
 #include <QSizePolicy>
 #include <QVector>
 
+#include <chrono>
+#include <stdexcept>
+
 using trek::StringBuilder;
 
 using std::shared_ptr;
 using std::make_unique;
 using std::array;
+using std::string;
 using std::ostream;
+using std::ofstream;
 using std::chrono::system_clock;
 
+constexpr int defaultTick = 300;
+
 QMonitor::QMonitor(std::shared_ptr<ExpoController> expoContr,
-                   ExpoView* expoView,
                    QWidget *parent)
     : QSplitter(parent),
-      mExpoContr(expoContr),
-      mExpoView(expoView) {
+      mExpoContr(expoContr) {
     boost::filesystem::create_directories("./monitoring/chambers");
     boost::filesystem::create_directories("./monitoring/frequency");
+
+    mTriggerStream.open("./monitoring/triggers.dat", mTriggerStream.app | mTriggerStream.binary);
+    mPackageStream.open("./monitoring/packages.dat", mTriggerStream.app | mTriggerStream.binary);
+    
     setupGUI();
 
     mTimer = new QTimer(this);
-    mTimer->setInterval(mTick->text().toInt() * 1000);
+    auto tick = mTick->text().toInt();
+    mTimer->setInterval(tick * 1000);
     mTimer->setSingleShot(false);
-    for(auto& c : mChambers) c->setTick(4 * mTick->text().toInt());
+    for(auto& plot : mPlots)
+        plot->xAxis->setTickStep(6*tick);
+    for(auto& c : mChambers)
+        c->setTick(6*tick);
 
     createConnections();
     resize(800, 600);
@@ -40,7 +53,7 @@ void QMonitor::setupGUI() {
     auto ctrlLayout = new QVBoxLayout;
 
     mToggle = new QPushButton("Start");
-    mTick   = new QLineEdit("300");
+    mTick   = new QLineEdit(QString::number(defaultTick));
     auto actionLayout = new QFormLayout;
     actionLayout->addRow(mToggle);
     actionLayout->addRow("Frequency", mTick);
@@ -164,165 +177,188 @@ QCustomPlot* QMonitor::createMetaPlot(const QString& title, const QVector<QStrin
 
 void QMonitor::createConnections() {
     connect(mTick, &QLineEdit::editingFinished, [this]{
-        auto tick = (mTick->text().toInt() > 0) ? mTick->text().toInt() : 1;
+        auto tick = mTick->text().toInt();
+        if(tick <= 0)
+            tick = 1;
         mTick->setText( QString::number(tick) );
-        if(mTimer->interval() != tick) {
+        if(mTimer->interval() != tick * 1000) {
             mTimer->setInterval(tick * 1000);
             
             for(auto& plot : mPlots)
-                plot->xAxis->setTickStep(4*tick);
+                plot->xAxis->setTickStep(6*tick);
             for(auto& c : mChambers)
-                c->setTick(4*tick);
-            mTriggerCount.reset();
-            mPackageCount.reset();
+                c->setTick(6*tick);
             mChambersCount.reset();
-            if(mTimer->isActive())
-                mTimer->start();
+            if(mTimer->isActive()) {
+                mTimer->stop();
+                launchMonitoring();
+            }
         }
     });
-    connect(mToggle, &QPushButton::clicked, [this]{
+    connect(mToggle, &QPushButton::clicked, [this] {
         if(mToggle->text() == "Start") {
+            launchMonitoring();
             mToggle->setText("Stop");
-            mTimer->start();
         } else {
             mToggle->setText("Start");
-            mTimer->stop();
-            mTriggerStream.flush();
-            mPackageStream.flush();
-            for(auto& c : mChambersStream) c.second.flush();
+            stopMonitoring();
         }
     });
     
     connect(mTimer, &QTimer::timeout, [this]{
-        mExpoContr->triggerCount();
-        mExpoContr->packageCount();
-        mExpoContr->chambersCount();
+        {
+            uintmax_t count, drop;
+            std::tie(count, drop) = mExpoContr->triggerCount();
+            updateTriggerCount(count, drop);
+        }
+        {
+            uintmax_t count, drop;
+            std::tie(count, drop) = mExpoContr->packageCount();
+            updatePackageCount(count, drop);
+        }
+        {
+            TrekFreq count, drop;
+            std::tie(count, drop) = mExpoContr->chambersCount();
+            updateChambersCount(count, drop);
+        }       
     });
 
-    connect(mExpoView, &ExpoView::type, [this](auto status, auto type) {
-        if(status.isEmpty()) {
-            mType->setText(type);
-            mToggle->setEnabled(type == "expo");
-            if(type == "expo") {
-                mToggle->setText("Stop");
-                mTimer->start();
-            } else {
-                mToggle->setText("Start");
-                mTimer->stop();
+    connect(mExpoContr.get(), &ExpoController::typeChanged,
+            this, &QMonitor::handleExpoType);
+    connect(mExpoContr.get(), &ExpoController::newRun, this, [this](auto run) {
+        mCurrentRun->setText(QString::number(run));
+    });
+    connect(mExpoContr.get(), &ExpoController::monitoring, this ,[this](auto freq) {
+        mFreq->setTrekFreq(freq);
+        mFreq->update();
+        for(const auto& c : freq) {
+            if(mFreqStream.count(c.first) == 0) {
+                auto name = string(StringBuilder() << "./monitoring/frequency/chamber_" << (c.first + 1) << ".dat");
+                mFreqStream.emplace(c.first, ofstream(name, ofstream::app | ofstream::binary));
             }
+            auto& s = mFreqStream.at(c.first);
+            s << system_clock::now();
+            for(auto& w : c.second)
+                s << '\t' << w;
+            s << std::endl;
         }
     });
-    connect(mExpoView, &ExpoView::run, this, [this](auto status, auto run) {
-        if(status.isEmpty()){
-            mCurrentRun->setText(QString::number(run));
-        }
-    });
-    connect(mExpoView, &ExpoView::freq, this ,[this](auto status, auto freq) {
-        if(status.isEmpty()) {
-            mFreq->setTrekFreq(freq);
-            mFreq->update();
-            for(auto c : freq) {
-                if(mFreqStream.count(c.first) == 0) {
-                        std::ofstream stream;
-                        stream.exceptions(stream.failbit | stream.badbit);
-                        stream.open(StringBuilder() << "./monitoring/frequency/chamber_" << (c.first + 1) << ".dat",
-                                    stream.app | stream.binary);
-                        mFreqStream.emplace(c.first, std::move(stream));
-                    }
-                    auto& s = mFreqStream.at(c.first);
-                    s << system_clock::now();
-                    for(auto& w : c.second)
-                        s << '\t' << w;
-                    s << std::endl;
-            }
-        }
-    });
-    connect(mExpoView, &ExpoView::triggerCount, this, [this](auto status, auto count, auto drop){
-        if(status.isEmpty()) {
-            if(mTriggerCount) {
-                auto& plot = *mPlots.at(1);
-                auto key = double(QDateTime::currentMSecsSinceEpoch())/1000;
-                this->updateGraph(*plot.graph(0), key, double(count - mTriggerCount->at(0))/mTick->text().toInt());
-                this->updateGraph(*plot.graph(1), key, double(drop -  mTriggerCount->at(1))/mTick->text().toInt());
-                plot.xAxis->rescale();
-                plot.yAxis->rescale();
-                if(!mTriggerStream.is_open())
-                    mTriggerStream.open("./monitoring/triggers.dat", mTriggerStream.app | mTriggerStream.binary);
-                plot.replot();
-                mTriggerStream << system_clock::now() << '\t' << count << '\t' << drop << '\t'
-                               << (double(count - mTriggerCount->at(0))/mTick->text().toInt()) << '\t'
-                               << (double(drop -  mTriggerCount->at(1))/mTick->text().toInt()) << '\n';
-            } else {
-                mTriggerCount = make_unique< array<uintmax_t, 2> >();
-            }
-            *mTriggerCount = {{count, drop}};
-            mTriggerLine->setText(tr("%1 | %2").arg(count).arg(drop));
-        }
-    });
-    connect(mExpoView, &ExpoView::packageCount, this, [this](auto status, auto count, auto drop){
-        if(status.isEmpty()) {
-            if(mPackageCount) {
-                auto& plot = *mPlots.at(2);
-                auto key = double(QDateTime::currentMSecsSinceEpoch())/1000;
-                this->updateGraph(*plot.graph(0), key, double(count - mPackageCount->at(0))/mTick->text().toInt());
-                this->updateGraph(*plot.graph(1), key, double(drop -  mPackageCount->at(1))/mTick->text().toInt());
-                plot.xAxis->rescale();
-                plot.yAxis->rescale();
-                plot.replot();
-                if(!mPackageStream.is_open())
-                    mPackageStream.open("./monitoring/packages.dat", mTriggerStream.app | mTriggerStream.binary);
-                mPackageStream << system_clock::now() << '\t' << count << '\t' << drop << '\t'
-                               << (double(count - mPackageCount->at(0))/mTick->text().toInt()) << '\t'
-                               << (double(drop -  mPackageCount->at(1))/mTick->text().toInt()) << '\n';
-            } else {
-                mPackageCount = make_unique< array<uintmax_t, 2> >();
-            }
-            *mPackageCount = {{count, drop}};
-            mPackageLine->setText(tr("%1 | %2").arg(count).arg(drop));
-        }
-    });
-    
-    connect(mExpoView, &ExpoView::chambersCount, this, [this](auto status, auto count, auto drop) {
-        if(status.isEmpty()) {
-            auto totalHits = reduceCount(count);
-            auto totalDrops = reduceCount(drop);
-            if(mChambersCount) {
-                auto key = double(QDateTime::currentMSecsSinceEpoch())/1000;
-                auto prevHits = reduceCount(mChambersCount->at(0));
-                auto prevDrops = reduceCount(mChambersCount->at(1));
-                auto& plot = *mPlots.at(0);
+}
+
+void QMonitor::handleExpoType(const QString& type) {
+    mType->setText(type);
+    mToggle->setEnabled(type == "expo");
+    if(type == "expo") {
+        mToggle->setText("Stop");
+        if(!mTimer->isActive())
+            launchMonitoring();
+    } else {
+        mToggle->setText("Start");
+        if(mTimer->isActive())
+            stopMonitoring();
+    }
+}
+
+void QMonitor::launchMonitoring() {
+    if(mTimer->isActive())
+        throw std::logic_error("launchMonitoring: timer is active!");
+    mTriggerCount.reset();
+    mPackageCount.reset();
+    mChambersCount.reset();
+    mTimer->start();
+}
+
+void QMonitor::stopMonitoring() {
+    if(!mTimer->isActive())
+        throw std::logic_error("stopMonitoring: timer is not active!");
+    mTimer->stop();
+    mTriggerStream.flush();
+    mPackageStream.flush();
+    for(auto& c : mChambersStream)
+        c.second.flush();
+}
+
+void QMonitor::updateState() {
+    auto type = QString::fromStdString(mExpoContr->type());
+    handleExpoType(type);
+}
+
+void QMonitor::updatePackageCount(uintmax_t count,  uintmax_t drop) {
+    if(mPackageCount) {
+        auto& plot = *mPlots.at(2);
+        auto key = double(QDateTime::currentMSecsSinceEpoch())/1000;
+        this->updateGraph(*plot.graph(0), key, double(count - mPackageCount->at(0))/mTick->text().toInt());
+        this->updateGraph(*plot.graph(1), key, double(drop -  mPackageCount->at(1))/mTick->text().toInt());
+        plot.xAxis->rescale();
+        plot.yAxis->rescale();
+        plot.replot();
+        mPackageStream << system_clock::now() << '\t' << count << '\t' << drop << '\t'
+                       << (double(count - mPackageCount->at(0))/mTick->text().toInt()) << '\t'
+                       << (double(drop -  mPackageCount->at(1))/mTick->text().toInt()) << '\n';
+    } else {
+        mPackageCount = make_unique< array<uintmax_t, 2> >();
+    }
+    *mPackageCount = {{count, drop}};
+    mPackageLine->setText(tr("%1 | %2").arg(count).arg(drop));
+}
+
+void QMonitor::updateTriggerCount(uintmax_t count, uintmax_t drop) {
+    if(mTriggerCount) {
+        auto& plot = *mPlots.at(1);
+        auto key = double(QDateTime::currentMSecsSinceEpoch())/1000;
+        this->updateGraph(*plot.graph(0), key, double(count - mTriggerCount->at(0))/mTick->text().toInt());
+        this->updateGraph(*plot.graph(1), key, double(drop -  mTriggerCount->at(1))/mTick->text().toInt());
+        plot.xAxis->rescale();
+        plot.yAxis->rescale();
+        plot.replot();
+        mTriggerStream << system_clock::now() << '\t' << count << '\t' << drop << '\t'
+                       << (double(count - mTriggerCount->at(0))/mTick->text().toInt()) << '\t'
+                       << (double(drop -  mTriggerCount->at(1))/mTick->text().toInt()) << '\n';
+    } else {
+        mTriggerCount = make_unique< array<uintmax_t, 2> >();
+    }
+    *mTriggerCount = {{count, drop}};
+    mTriggerLine->setText(tr("%1 | %2").arg(count).arg(drop));
+}
+
+void QMonitor::updateChambersCount(const TrekFreq& count, const TrekFreq& drop) {
+    auto totalHits = reduceCount(count);
+    auto totalDrops = reduceCount(drop);
+    if(mChambersCount) {
+        auto key = double(QDateTime::currentMSecsSinceEpoch())/1000;
+        auto prevHits = reduceCount(mChambersCount->at(0));
+        auto prevDrops = reduceCount(mChambersCount->at(1));
+        auto& plot = *mPlots.at(0);
                 
-                this->updateGraph(*plot.graph(0), key, double(totalHits - prevHits)/mTick->text().toInt());
-                this->updateGraph(*plot.graph(1), key, double(totalDrops -  prevDrops)/mTick->text().toInt());
-                plot.xAxis->rescale();
-                plot.yAxis->rescale();
-                plot.replot();
+        this->updateGraph(*plot.graph(0), key, double(totalHits - prevHits)/mTick->text().toInt());
+        this->updateGraph(*plot.graph(1), key, double(totalDrops -  prevDrops)/mTick->text().toInt());
+        plot.xAxis->rescale();
+        plot.yAxis->rescale();
+        plot.replot();
                 
-                for(auto& c : this->convertCount(count, mChambersCount->at(0), mTick->text().toInt())) {
-                    mChambers.at(c.first)->addFreq(key, c.second);
-                    mChambers.at(c.first)->removeDataBefore(key - 50 * mTick->text().toInt());
-                    mChambers.at(c.first)->rescaleAxis();
-                    mChambers.at(c.first)->replot();
-                    if(mChambersStream.count(c.first) == 0) {
-                        std::ofstream stream;
-                        stream.exceptions(stream.failbit | stream.badbit);
-                        stream.open(StringBuilder() << "./monitoring/chambers/chamber_" << (c.first + 1) << ".dat",
-                                    stream.app | stream.binary);
-                        mChambersStream.emplace(c.first, std::move(stream));
-                    }
-                    auto& s = mChambersStream.at(c.first);
-                    s << system_clock::now();
-                    for(auto& w : c.second)
-                        s << '\t' << w;
-                    s << '\n';
-                }
-            } else {
-                mChambersCount = make_unique< array<TrekFreq, 2> >();
+        for(auto& c : this->convertCount(count, mChambersCount->at(0), mTick->text().toInt())) {
+            mChambers.at(c.first)->addFreq(key, c.second);
+            mChambers.at(c.first)->removeDataBefore(key - 50 * mTick->text().toInt());
+            mChambers.at(c.first)->rescaleAxis();
+            mChambers.at(c.first)->replot();
+            if(mChambersStream.count(c.first) == 0) {
+                std::ofstream stream;
+                stream.exceptions(stream.failbit | stream.badbit);
+                stream.open(StringBuilder() << "./monitoring/chambers/chamber_" << (c.first + 1) << ".dat",
+                            stream.app | stream.binary);
+                mChambersStream.emplace(c.first, std::move(stream));
             }
-            mHitsLine->setText(tr("%1 | %2").arg(totalHits).arg(totalDrops));
-            *mChambersCount = {{count, drop}};
+            auto& s = mChambersStream.at(c.first);
+            s << system_clock::now();
+            for(auto& w : c.second)
+                s << '\t' << w;
+            s << '\n';
         }
-    });
+    } else {
+        mChambersCount = make_unique< array<TrekFreq, 2> >();
+    }
+    mHitsLine->setText(tr("%1 | %2").arg(totalHits).arg(totalDrops));
+    *mChambersCount = {{count, drop}};
 }
 
 ChamberFreq QMonitor::convertCount(const ChamberFreq& current, const ChamberFreq& prev, int sec) {
