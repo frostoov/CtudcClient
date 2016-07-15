@@ -62,7 +62,7 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 14)
 set(Boost_USE_STATIC_LIBS ON)
 find_package(
         Boost
-	1.60.0
+	1.55.0
 	COMPONENTS
 	system
 	filesystem
