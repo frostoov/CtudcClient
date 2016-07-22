@@ -6,8 +6,12 @@
 using trek::net::Response;
 using std::exception;
 
+
 TdcController::TdcController(const std::string& name, std::shared_ptr<CtudcConn> conn)
     : mName(name), mConn(conn) {
+    qRegisterMetaType<Tdc::Settings>("Tdc::Settings");
+    qRegisterMetaType<Tdc::Mode>("Tdc::Mode");
+    qRegisterMetaType<uint16_t>("uint16_t");
     mHandlers = {
         {"isOpen", [&](const Response& r) {emit stateChanged(r.outputs.at(0).get<bool>()); }},
         {"ctrl", [&](const Response& r) {emit ctrlChanged(r.outputs.at(0).get<uint16_t>());}},
