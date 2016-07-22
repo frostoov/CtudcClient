@@ -25,7 +25,7 @@ auto appConfigPath() {
 
 int main(int argc, char* argv[]) {
     std::ios_base::sync_with_stdio(false);
-    
+
     QApplication a(argc, argv);
     console = new QConsole("CtudcClient");
     a.setStyle(QStyleFactory::create("Fusion"));

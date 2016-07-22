@@ -18,13 +18,13 @@ ExpoController::ExpoController(const std::string& name, std::shared_ptr<CtudcCon
 }
 
 string ExpoController::type() {
-    return mConn->send({mName, __func__}).outputs.at(0).get<std::string>();
+    return mConn->send({mName, __func__}).outputs.at(0).get<string>();
 }
 unsigned ExpoController::run() {
     return mConn->send({mName, __func__}).outputs.at(0).get<unsigned>();
 }
 void ExpoController::launchRead() {
-    mConn->send({mName, __func__});
+    mConn->send({mName, __func__, {"nevod", "CaenV2718"}});
 }
 void ExpoController::stopRead() {
     mConn->send({mName, __func__});
