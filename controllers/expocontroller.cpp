@@ -30,7 +30,7 @@ void ExpoController::stopRead() {
     mConn->send({mName, __func__});
 }
 void ExpoController::launchFreq(int delay) {
-    mConn->send({mName, __func__, {delay}});
+    mConn->send({mName, __func__, {"CaenV2718", delay}});
 }
 void ExpoController::stopFreq() {
     mConn->send({mName, __func__});
