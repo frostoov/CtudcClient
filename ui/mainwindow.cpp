@@ -41,11 +41,12 @@ MainWindow::MainWindow(shared_ptr<CtudcConn> conn,
         try {
             auto response = Response({r.begin(), r.end()});
             std::cout << "udp: " << string(response) << std::endl;
-            if(response.object == "caen") {
+
+            if(response.object == mTdcContr->name()) {
                 mTdcContr->handleResponse(response);
-            } else if(response.object == "vlt") {
+            } else if(response.object == mVoltContr->name()) {
                 mVoltContr->handleResponse(response);
-            } else if(response.object == "expo") {
+            } else if(response.object == mExpoContr->name()) {
                 mExpoContr->handleResponse(response);
             }
         } catch(...) {

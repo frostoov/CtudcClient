@@ -19,6 +19,7 @@ class ExpoController : public QObject {
     using Handler = std::function<void(const trek::net::Response&)>;
 public:
     ExpoController(const std::string& name, std::shared_ptr<CtudcConn> conn);
+    const std::string& name() const { return mName; }
     std::string type();
     unsigned run();
     void launchRead();

@@ -16,6 +16,7 @@ class TdcController : public QObject {
     using Handler = std::function<void(const trek::net::Response&)>;
 public:
     TdcController(const std::string& name, std::shared_ptr<CtudcConn> conn);
+    const std::string& name() const { return mName; }
     void open();
     void close();
     bool isOpen();
