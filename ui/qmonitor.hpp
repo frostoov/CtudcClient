@@ -11,6 +11,7 @@
 #include <QPushButton>
 #include <QLineEdit>
 #include <QString>
+#include <QPair>
 #include <QTabWidget>
 
 #include <fstream>
@@ -21,14 +22,15 @@ class QMonitor : public QSplitter {
 	using OfstreamPtr = std::unique_ptr<std::ofstream>;
 public:
     QMonitor(std::shared_ptr<ExpoController> expoContr,
+             const QChamberTable::Config& tableConf,
              QWidget* parent = nullptr);
     void updateState();
 protected:
     void handleExpoType(const QString& type);
     void launchMonitoring();
     void stopMonitoring();
-    void setupGUI();
-    QCustomPlot* createMetaPlot(const QString& title, const QVector<QString>& names);
+    void setupGUI(const QChamberTable::Config& tableConf);
+    QCustomPlot* createMetaPlot(const QString& title, const QVector< QPair<QString, QColor> >& plotLabels);
 
     void createConnections();
     void updateGraph(QCPGraph& graph, double key, double val);

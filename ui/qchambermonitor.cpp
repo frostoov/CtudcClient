@@ -51,12 +51,12 @@ void QChamberMonitor::setupGUI(const QString& name) {
     plotLayout()->insertRow(0);
     mTitle = new QCPPlotTitle(this, name);
     plotLayout()->addElement(0, 0, mTitle);
-    for(size_t i = 0 ; i < graphs; ++i) {
+    for(int i = 0 ; i < graphs; ++i) {
         QColor color {
             255 * ( (int(i + 1) >> 0) & 1 ),
-                255 * ( (int(i + 1) >> 1) & 1 ),
-                255 * ( (int(i + 1) >> 2) & 1 ),
-                };
+            255 * ( (int(i + 1) >> 1) & 1 ),
+            255 * ( (int(i + 1) >> 2) & 1 ),
+        };
         QPen pen(color);
         pen.setWidth(2);
         pen.setStyle(Qt::DotLine);

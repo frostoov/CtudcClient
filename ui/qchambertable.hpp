@@ -2,6 +2,8 @@
 
 #include "controllers/expocontroller.hpp"
 
+#include <json.hpp>
+
 #include <QTableWidget>
 
 using ChamCodeFreq   = std::pair<int, ChamberFreq>;
@@ -11,12 +13,15 @@ using TrekFreqSeries = std::unordered_map<uintmax_t, ChamFreqSeries>;
 class QChamberTable : public QTableWidget {
 public:
     struct Config {
-        Config(double minc = 100, double minn = 500, double maxn = 2000, double maxc = 4000)
+        Config(double minc = 0, double minn = 0, double maxn = 0, double maxc = 0)
             : minCrit(minc), minNorm(minn), maxNorm(maxn), maxCrit(maxc) { }
         double minCrit;
         double minNorm;
         double maxNorm;
         double maxCrit;
+
+        nlohmann::json marshal() const;
+        void unMarshal(const nlohmann::json& doc);
     };
 public:
     QChamberTable(int rows, const Config& conf = {}, QWidget* parent = nullptr);

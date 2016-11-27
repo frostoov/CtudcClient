@@ -72,7 +72,7 @@ void QVoltageWidget::createConnections() {
             timer->start();
         mToggle->setText(timer->isActive() ? "Stop" : "Start");
     });
-    connect(mUpdate, &QPushButton::clicked, this, [this](auto flag) {
+    connect(mUpdate, &QPushButton::clicked, this, [this](auto) {
         try {
             auto isOpen = mContr->isOpen();
             mOpen->setText(isOpen ? "Close" : "Open");
@@ -89,7 +89,7 @@ void QVoltageWidget::createConnections() {
             QMessageBox::warning(this, "updated", e.what());
         }
     });
-    connect(mOpen, &QPushButton::clicked, this, [this](auto flag) {
+    connect(mOpen, &QPushButton::clicked, this, [this](auto) {
         try {
             if(mOpen->text() == "Open") {
                 mContr->open();

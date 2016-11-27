@@ -41,8 +41,9 @@ int main(int argc, char* argv[]) {
 
     auto conn = std::make_shared<CtudcConn>(conf.addr, conf.port);
     auto recv = std::make_shared<MulticastReceiver>(conf.multicastAddr, conf.multicastPort);
+    
 
-    MainWindow w(conn, recv);
+    MainWindow w(conn, recv, conf.freqLevels);
     w.show();
     return a.exec();
 }

@@ -25,6 +25,7 @@ using std::chrono::system_clock;
 constexpr int defaultTick = 300;
 
 QMonitor::QMonitor(std::shared_ptr<ExpoController> expoContr,
+                   const QChamberTable::Config& tableConf,
                    QWidget *parent)
     : QSplitter(parent),
       mExpoContr(expoContr) {
@@ -34,7 +35,7 @@ QMonitor::QMonitor(std::shared_ptr<ExpoController> expoContr,
     mTriggerStream.open("./monitoring/triggers.dat", mTriggerStream.app | mTriggerStream.binary);
     mPackageStream.open("./monitoring/packages.dat", mTriggerStream.app | mTriggerStream.binary);
 
-    setupGUI();
+    setupGUI(tableConf);
 
     mTimer = new QTimer(this);
     auto tick = mTick->text().toInt();
@@ -49,7 +50,7 @@ QMonitor::QMonitor(std::shared_ptr<ExpoController> expoContr,
     resize(800, 600);
 }
 
-void QMonitor::setupGUI() {
+void QMonitor::setupGUI(const QChamberTable::Config& tableConf) {
     auto ctrlLayout = new QVBoxLayout;
 
     mToggle = new QPushButton("Start");
@@ -83,9 +84,9 @@ void QMonitor::setupGUI() {
     ctrlLayout->addWidget(statGroup);
 
     mPlots = {{
-        createMetaPlot("Hits", {"good", "drops"}),
-        createMetaPlot("Triggers", {"good", "drops"}),
-        createMetaPlot("Packages", {"good", "drops"}),
+        createMetaPlot("Hits", {{"good", Qt::darkGreen}, {"drops", Qt::red}}),
+        createMetaPlot("Triggers", {{"good", Qt::darkGreen}, {"drops", Qt::red}}),
+        createMetaPlot("Packages", {{"good", Qt::darkGreen}, {"drops", Qt::red}}),
     }};
 
     auto plotsLayout = new QGridLayout;
@@ -117,7 +118,7 @@ void QMonitor::setupGUI() {
     auto chambersWidget = new QWidget;
     chambersWidget->setLayout(chambersLayout);
 
-    mFreq = new QChamberTable(16);
+    mFreq = new QChamberTable(16, tableConf);
     auto tab = new QTabWidget;
     tab->addTab(plotsWidget, "main" );
     tab->addTab(chambersWidget, "chambers");
@@ -144,7 +145,7 @@ static ostream& operator<<(ostream& stream, const system_clock::time_point& tp) 
 
 }
 
-QCustomPlot* QMonitor::createMetaPlot(const QString& title, const QVector<QString>& names) {
+QCustomPlot* QMonitor::createMetaPlot(const QString& title, const QVector< QPair<QString, QColor> >& plotLabels) {
     auto* plot = new QCustomPlot;
 
     plot->plotLayout()->insertRow(0);
@@ -161,20 +162,17 @@ QCustomPlot* QMonitor::createMetaPlot(const QString& title, const QVector<QStrin
             plot->replot();
         }
     });
-    for(int i = 0; i < names.size(); ++i) {
+    for(int i = 0; i < plotLabels.size(); ++i) {
+        auto& name = plotLabels.at(i).first;
+        auto& color = plotLabels.at(i).second;
         plot->addGraph(plot->xAxis, plot->yAxis);
-        QColor color {
-            255 * ( ((i + 1) >> 0) & 1 ),
-            255 * ( ((i + 1) >> 1) & 1 ),
-            255 * ( ((i + 1) >> 2) & 1 ),
-    };
 
         QBrush brush(color);
         QPen pen(color);
         pen.setWidth(2);
         pen.setStyle(Qt::PenStyle::SolidLine);
 
-        plot->graph(i)->setName(names.at(i));
+        plot->graph(i)->setName(name);
         plot->graph(i)->setPen(pen);
         plot->graph(i)->setLineStyle(QCPGraph::lsLine);
         plot->graph(i)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, 6));

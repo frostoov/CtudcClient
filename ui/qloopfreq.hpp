@@ -17,7 +17,7 @@
 
 class QLoopFreqWidget : public QWidget {
 public:
-    QLoopFreqWidget(QWidget* parent = 0);
+    QLoopFreqWidget(const QChamberTable::Config& tableConf, QWidget* parent = 0);
     void addFreq(int volt, const TrekFreq& freq);
     void clearData();
     void updateData();
@@ -27,7 +27,7 @@ protected:
     void fillList(const TrekFreqSeries& series);
     QChamberMonitor* createPlot();
     void packWidgets();
-    void createWidgets();
+    void createWidgets(const QChamberTable::Config& tableConf);
     void setupGUI();
 private:
     QTabWidget*	tab;

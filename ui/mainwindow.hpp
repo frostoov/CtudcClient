@@ -32,6 +32,7 @@ class MainWindow : public QMainWindow {
 public:
     MainWindow(std::shared_ptr<CtudcConn> conn,
                std::shared_ptr<trek::net::MulticastReceiver> recv,
+               const QChamberTable::Config& tableConf,
                QWidget* parent = nullptr);
     ~MainWindow();
 protected:

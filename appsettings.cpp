@@ -22,6 +22,7 @@ nlohmann::json AppSettings::marshal() const {
         {"port", port },
         {"multicast_address", multicastAddr },
         {"multicast_port", multicastPort },
+        {"freq_levels", freqLevels.marshal()},
     };
 }
 
@@ -30,4 +31,5 @@ void AppSettings::unMarshal(const nlohmann::json& doc) {
     port = doc.at("port");
     multicastAddr = doc.at("multicast_address");
     multicastPort = doc.at("multicast_port");
+    freqLevels.unMarshal(doc.at("freq_levels"));
 }

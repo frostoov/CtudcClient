@@ -11,6 +11,7 @@
 QChamberTable::QChamberTable(int rows, const Config& conf, QWidget* parent)
     : QTableWidget(rows + 1, 5, parent),
       mConf(conf) {
+    std::cout << conf.marshal().dump(4) << std::endl;
     horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     horizontalHeader()->hide();
@@ -138,4 +139,20 @@ void QChamberTable::keyPressEvent(QKeyEvent* evt) {
         QApplication::clipboard()->setText(text);
     } else
         QWidget::keyPressEvent(evt);
+}
+
+nlohmann::json QChamberTable::Config::marshal() const {
+    return {
+        {"min_crit", minCrit },
+        {"min_norm", minNorm },
+        {"max_norm", maxNorm },
+        {"max_crit", maxCrit },
+    };
+}
+
+void QChamberTable::Config::unMarshal(const nlohmann::json& doc) {
+    minCrit = doc.at("min_crit").get<double>();
+    minNorm = doc.at("min_norm").get<double>();
+    maxNorm = doc.at("max_norm").get<double>();
+    maxCrit = doc.at("max_crit").get<double>();
 }

@@ -31,6 +31,7 @@ class QFrequencyWidget : public QWidget {
 public:
     QFrequencyWidget(std::shared_ptr<ExpoController> expoContr,
                      std::shared_ptr<VoltageController> voltContr,
+                     const QChamberTable::Config& tableConf,
                      QWidget* parent = nullptr);
     ~QFrequencyWidget();
 protected:
@@ -41,7 +42,7 @@ signals:
     void loopFinished();
 private:
     void createLayouts();
-    void createWidgets();
+    void createWidgets(const QChamberTable::Config& tableConf);
     void packWidgets();
 private:
     std::shared_ptr<ExpoController> mExpoContr;

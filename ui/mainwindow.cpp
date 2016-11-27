@@ -23,7 +23,7 @@ using std::make_shared;
 using std::shared_ptr;
 
 MainWindow::MainWindow(shared_ptr<CtudcConn> conn,
-                       shared_ptr<MulticastReceiver> recv,
+                       shared_ptr<MulticastReceiver> recv, const QChamberTable::Config& tableConf,
                        QWidget* parent)
     : QMainWindow(parent),
       mConn(conn),
@@ -34,9 +34,9 @@ MainWindow::MainWindow(shared_ptr<CtudcConn> conn,
       mStatus(new QStatusWidget (mTdcContr, this)),
       mControl(new QControlWidget (mTdcContr, this)),
       mSettings(new QSettingsWidget (mTdcContr, this)),
-      mFrequency(new QFrequencyWidget(mExpoContr, mVoltContr)),
+      mFrequency(new QFrequencyWidget(mExpoContr, mVoltContr, tableConf)),
       mVoltage(new QVoltageWidget(mVoltContr)),
-      mMonitor(new QMonitor(mExpoContr)) {
+      mMonitor(new QMonitor(mExpoContr, tableConf)) {
     mRecv->onRecv([&](const auto& r) {
         try {
             auto response = Response({r.begin(), r.end()});

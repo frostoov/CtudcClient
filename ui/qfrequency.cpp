@@ -16,13 +16,14 @@ using std::exception;
 
 QFrequencyWidget::QFrequencyWidget(shared_ptr<ExpoController> expoContr,
                                    shared_ptr<VoltageController> voltContr,
+                                   const QChamberTable::Config& tableConf,
                                    QWidget* parent)
     : QWidget(parent),
       mExpoContr(expoContr),
       mVoltContr(voltContr),
       mState(State::None) {
     qRegisterMetaType<TrekFreq>("TrekFreq");
-    createWidgets();
+    createWidgets(tableConf);
     createLayouts();
     packWidgets();
 
@@ -120,10 +121,10 @@ void QFrequencyWidget::packWidgets() {
     loopGroup->setLayout(loopLayout);
 }
 
-void QFrequencyWidget::createWidgets() {
+void QFrequencyWidget::createWidgets(const QChamberTable::Config& tableConf) {
     tabWidget = new QTabWidget(this);
-    mTable = new QChamberTable(16);
-    loopWidget = new QLoopFreqWidget(this);
+    mTable = new QChamberTable(16, tableConf);
+    loopWidget = new QLoopFreqWidget(tableConf, this);
     launchFreq = new QPushButton("Start freq", this);
     startLoop = new QPushButton("Start loop", this);
     timerL = new QLineEdit("10", this);

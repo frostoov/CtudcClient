@@ -13,9 +13,9 @@ using std::make_unique;
 using std::setw;
 using std::setfill;
 
-QLoopFreqWidget::QLoopFreqWidget(QWidget* parent)
+QLoopFreqWidget::QLoopFreqWidget(const QChamberTable::Config& tableConf, QWidget* parent)
     : QWidget(parent) {
-    createWidgets();
+    createWidgets(tableConf);
     packWidgets();
 
     connect(saveTableB, &QPushButton::clicked,
@@ -28,9 +28,9 @@ QLoopFreqWidget::QLoopFreqWidget(QWidget* parent)
             this, &QLoopFreqWidget::setChamberData);
 }
 
-void QLoopFreqWidget::createWidgets() {
+void QLoopFreqWidget::createWidgets(const QChamberTable::Config& tableConf) {
     tab	= new QTabWidget;
-    mTable = new QChamberTable(20);
+    mTable = new QChamberTable(20, tableConf);
     mPlot = createPlot();
     list = new QListWidget;
     saveTableB  = new QPushButton("Save Table");
