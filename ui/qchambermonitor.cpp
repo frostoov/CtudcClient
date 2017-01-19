@@ -1,6 +1,6 @@
 #include "qchambermonitor.hpp"
 
-constexpr size_t graphs = 4;
+constexpr int graphs = 4;
 
 QChamberMonitor::QChamberMonitor(const QString& name, QWidget* parent)
     :QCustomPlot(parent) {

@@ -83,18 +83,27 @@ void QMonitor::setupGUI(const QChamberTable::Config& tableConf) {
     ctrlLayout->addWidget(actionGroup);
     ctrlLayout->addWidget(statGroup);
 
+
     mPlots = {{
         createMetaPlot("Hits", {{"good", Qt::darkGreen}, {"drops", Qt::red}}),
         createMetaPlot("Triggers", {{"good", Qt::darkGreen}, {"drops", Qt::red}}),
         createMetaPlot("Packages", {{"good", Qt::darkGreen}, {"drops", Qt::red}}),
     }};
+    mFreq = new QChamberTable(16, tableConf);
+
 
     auto plotsLayout = new QGridLayout;
     plotsLayout->addWidget(mPlots.at(0), 0, 0, 1, 2);
     plotsLayout->addWidget(mPlots.at(1), 1, 0);
     plotsLayout->addWidget(mPlots.at(2), 1, 1);
+
     auto plotsWidget = new QWidget;
     plotsWidget->setLayout(plotsLayout);
+
+    auto mainStatLayout = new QSplitter;
+    mainStatLayout->addWidget(plotsWidget);
+    mainStatLayout->addWidget(mFreq);
+
 
     auto chambersLayout = new QGridLayout;
     for(size_t i = 0; i < mChambers.size(); ++i) {
@@ -118,11 +127,9 @@ void QMonitor::setupGUI(const QChamberTable::Config& tableConf) {
     auto chambersWidget = new QWidget;
     chambersWidget->setLayout(chambersLayout);
 
-    mFreq = new QChamberTable(16, tableConf);
     auto tab = new QTabWidget;
-    tab->addTab(plotsWidget, "main" );
+    tab->addTab(mainStatLayout, "main" );
     tab->addTab(chambersWidget, "chambers");
-    tab->addTab(mFreq, "freq");
 
     auto ctrlWidget = new QWidget;
     ctrlWidget->setLayout(ctrlLayout);
