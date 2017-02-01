@@ -53,7 +53,6 @@ private:
     ArrayPtr<uintmax_t , 2> mPackageCount;
     std::ofstream mPackageStream;
     ArrayPtr<TrekFreq, 2> mChambersCount;
-    std::ofstream mHitStream;
     std::unordered_map<unsigned, std::ofstream> mChambersStream;
     std::unordered_map<unsigned, std::ofstream> mFreqStream;
     QPushButton* mToggle;

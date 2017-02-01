@@ -144,7 +144,7 @@ static ostream& operator<<(ostream& stream, const system_clock::time_point& tp) 
     auto time = system_clock::to_time_t(tp);
 #ifdef __WIN32
     auto tm = std::localtime(&time);
-    return stream << tm->tm_mday << '.' << tm->tm_mday << '.' << (tm->tm_year + 1900) << ' '
+    return stream << tm->tm_mday << '.' << (tm->tm_mday + 1) << '.' << (tm->tm_year + 1900) << ' '
                   << tm->tm_hour << ':' << tm->tm_min << '.' << tm->tm_sec;
 #elif __linux__
     return stream << std::put_time(std::localtime(&time), "%d.%m.%Y %T");
@@ -401,7 +401,7 @@ uintmax_t QMonitor::reduceCount(const TrekFreq& count) {
     return std::accumulate(count.begin(), count.end(), uintmax_t(0), [](uintmax_t val, auto& count) {
         return std::accumulate(count.second.begin(), count.second.end(), uintmax_t(0), [](uintmax_t val, double count) {
             return val + count;
-        });
+        }) + val;
     });
 }
 

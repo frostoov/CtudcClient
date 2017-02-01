@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 project(CtudcClient)
 
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -pedantic")
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++")
 
 include_directories(${PROJECT_SOURCE_DIR})
