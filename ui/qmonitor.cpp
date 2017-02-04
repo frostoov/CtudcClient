@@ -41,13 +41,8 @@ QMonitor::QMonitor(std::shared_ptr<ExpoController> expoContr,
     auto tick = mTick->text().toInt();
     mTimer->setInterval(tick * 1000);
     mTimer->setSingleShot(false);
-    for(auto& plot : mPlots)
-        plot->xAxis->setTickStep(5*tick);
-    for(auto& c : mChambers)
-        c->setTick(5*tick);
 
     createConnections();
-    resize(800, 600);
 }
 
 void QMonitor::setupGUI(const QChamberTable::Config& tableConf) {
@@ -85,9 +80,9 @@ void QMonitor::setupGUI(const QChamberTable::Config& tableConf) {
 
 
     mPlots = {{
-        createMetaPlot("Hits", {{"good", Qt::darkGreen}, {"drops", Qt::red}}),
-        createMetaPlot("Triggers", {{"good", Qt::darkGreen}, {"drops", Qt::red}}),
-        createMetaPlot("Packages", {{"good", Qt::darkGreen}, {"drops", Qt::red}}),
+        createMetaPlot("Hits", {{"good", Qt::darkGreen}, {"drops", Qt::red}}, 4),
+        createMetaPlot("Triggers", {{"good", Qt::darkGreen}, {"drops", Qt::red}}, 3),
+        createMetaPlot("Packages", {{"good", Qt::darkGreen}, {"drops", Qt::red}}, 3),
     }};
     mFreq = new QChamberTable(16, tableConf);
 
@@ -110,7 +105,10 @@ void QMonitor::setupGUI(const QChamberTable::Config& tableConf) {
         mChambers.at(i) = new QChamberMonitor(tr("Chamber %1").arg(i + 1));
         mChambers.at(i)->xAxis->setTickLabelType(QCPAxis::ltDateTime);
         mChambers.at(i)->xAxis->setDateTimeFormat("hh:mm:ss");
-        mChambers.at(i)->xAxis->setAutoTickStep(false);
+        mChambers.at(i)->xAxis->setAutoTicks(true);
+        mChambers.at(i)->xAxis->setAutoTickCount(3);
+        mChambers.at(i)->xAxis->setAutoTickLabels(true);
+        mChambers.at(i)->xAxis->setAutoTickStep(true);
         chambersLayout->addWidget(mChambers.at(i), i%4, 4 - i/4);
 
         connect(mChambers[i], &QChamberMonitor::mouseDoubleClick, this, [this, i] {
@@ -152,15 +150,23 @@ static ostream& operator<<(ostream& stream, const system_clock::time_point& tp) 
 
 }
 
-QCustomPlot* QMonitor::createMetaPlot(const QString& title, const QVector< QPair<QString, QColor> >& plotLabels) {
+QCustomPlot* QMonitor::createMetaPlot(const QString& title, const QVector<QPair<QString, QColor>>& plotLabels, int ticks) {
     auto* plot = new QCustomPlot;
+
+    plot->setInteraction(QCP::iRangeZoom, true);
+    plot->setInteraction(QCP::iRangeDrag, true);
+    plot->yAxis->axisRect()->setRangeZoom(Qt::Vertical);
+    plot->yAxis->axisRect()->setRangeDrag(Qt::Vertical);
 
     plot->plotLayout()->insertRow(0);
     plot->plotLayout()->addElement(0, 0, new QCPPlotTitle(plot, title));
 
     plot->xAxis->setTickLabelType(QCPAxis::ltDateTime);
     plot->xAxis->setDateTimeFormat("hh:mm:ss");
-    plot->xAxis->setAutoTickStep(false);
+    plot->xAxis->setAutoTicks(true);
+    plot->xAxis->setAutoTickCount(ticks);
+    plot->xAxis->setAutoTickLabels(true);
+    plot->xAxis->setAutoTickStep(true);
 
     plot->yAxis->setLabel("Frequency, Hz");
     connect(plot, &QCustomPlot::mousePress, this, [plot](QMouseEvent* event) {
@@ -197,10 +203,6 @@ void QMonitor::createConnections() {
 
             mTimer->setInterval(tick * 1000);
 
-            for(auto& plot : mPlots)
-                plot->xAxis->setTickStep(5*tick);
-            for(auto& c : mChambers)
-                c->setTick(5*tick);
             mChambersCount.reset();
             if(mTimer->isActive()) {
                 mTimer->stop();
@@ -302,7 +304,6 @@ void QMonitor::updatePackageCount(uintmax_t count,  uintmax_t drop) {
         this->updateGraph(*plot.graph(0), key, double(count - mPackageCount->at(0))/mTick->text().toInt());
         this->updateGraph(*plot.graph(1), key, double(drop -  mPackageCount->at(1))/mTick->text().toInt());
         plot.xAxis->rescale();
-        plot.yAxis->rescale();
         plot.replot();
         mPackageStream << system_clock::now() << '\t' << count << '\t' << drop << '\t'
                        << (double(count - mPackageCount->at(0))/mTick->text().toInt()) << '\t'
@@ -321,7 +322,6 @@ void QMonitor::updateTriggerCount(uintmax_t count, uintmax_t drop) {
         this->updateGraph(*plot.graph(0), key, double(count - mTriggerCount->at(0))/mTick->text().toInt());
         this->updateGraph(*plot.graph(1), key, double(drop -  mTriggerCount->at(1))/mTick->text().toInt());
         plot.xAxis->rescale();
-        plot.yAxis->rescale();
         plot.replot();
         mTriggerStream << system_clock::now() << '\t' << count << '\t' << drop << '\t'
                        << (double(count - mTriggerCount->at(0))/mTick->text().toInt()) << '\t'
@@ -345,7 +345,6 @@ void QMonitor::updateChambersCount(const TrekFreq& count, const TrekFreq& drop) 
         this->updateGraph(*plot.graph(0), key, double(totalHits - prevHits)/mTick->text().toInt());
         this->updateGraph(*plot.graph(1), key, double(totalDrops -  prevDrops)/mTick->text().toInt());
         plot.xAxis->rescale();
-        plot.yAxis->rescale();
         plot.replot();
 
         for(auto& c : this->convertCount(count, mChambersCount->at(0), mTick->text().toInt())) {

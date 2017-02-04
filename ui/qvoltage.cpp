@@ -22,8 +22,6 @@ QVoltageWidget::QVoltageWidget(shared_ptr<VoltageController> controller,
     timer = new QTimer(this);
     timer->setInterval(defaultTick * 1000);
     timer->setSingleShot(false);
-    for(auto& plot : mPlot)
-        plot->xAxis->setTickStep(5 * mTick->text().toInt());
 
     createConnections();
     resize(800, 600);
@@ -156,9 +154,6 @@ void QVoltageWidget::setupGUI() {
             freq = 1;
         mTick->setText(QString::number(freq));
         timer->setInterval(1000 * freq);
-
-        for(auto& plot : mPlot)
-            plot->xAxis->setTickStep(4 * freq);
     });
 
     auto actionLayout = new QFormLayout;
@@ -188,10 +183,20 @@ void QVoltageWidget::setupGUI() {
 }
 
 void QVoltageWidget::setupPlot(QCustomPlot& plot, const QString& name) {
+    plot.setInteraction(QCP::iRangeZoom, true);
+    plot.setInteraction(QCP::iRangeDrag, true);
+
+
+    plot.yAxis->axisRect()->setRangeZoom(Qt::Vertical);
+    plot.yAxis->axisRect()->setRangeDrag(Qt::Vertical);
+
+    plot.xAxis->setAutoTicks(true);
+    plot.xAxis->setAutoTickCount(5);
+    plot.xAxis->setAutoTickLabels(true);
+    plot.xAxis->setAutoTickStep(true);
+    
     plot.xAxis->setTickLabelType(QCPAxis::ltDateTime);
     plot.xAxis->setDateTimeFormat("hh:mm:ss");
-    plot.xAxis->setAutoTickStep(false);
-    plot.xAxis->setTickStep(3);
     plot.legend->setVisible(true);
     plot.yAxis->setLabel("Voltage");
     plot.yAxis2->setLabel("Amperage");
@@ -238,7 +243,8 @@ void QVoltageWidget::updateCell(const std::string& type) {
     {
         QCustomPlot& plot = *mPlot[QString::fromStdString(type)];
         updateGraph(*plot.graph(0), voltage);
-        plot.rescaleAxes();
+        plot.xAxis->rescale();
+        plot.xAxis2->rescale();
         plot.yAxis->setRange( {0, plot.yAxis->range().upper} );
         plot.yAxis2->setRange( {0, plot.yAxis2->range().upper} );
         plot.replot();
@@ -246,7 +252,8 @@ void QVoltageWidget::updateCell(const std::string& type) {
     {
         QCustomPlot& plot = *mPlot[QString::fromStdString(type)];
         updateGraph(*plot.graph(1), amperage);
-        plot.rescaleAxes();
+        plot.xAxis->rescale();
+        plot.xAxis2->rescale();
         plot.yAxis->setRange( {0, plot.yAxis->range().upper} );
         plot.yAxis2->setRange( {0, plot.yAxis2->range().upper} );
         plot.replot();

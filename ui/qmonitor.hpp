@@ -30,7 +30,7 @@ protected:
     void launchMonitoring();
     void stopMonitoring();
     void setupGUI(const QChamberTable::Config& tableConf);
-    QCustomPlot* createMetaPlot(const QString& title, const QVector< QPair<QString, QColor> >& plotLabels);
+    QCustomPlot* createMetaPlot(const QString& title, const QVector< QPair<QString, QColor> >& plotLabels, int ticks);
 
     void createConnections();
     void updateGraph(QCPGraph& graph, double key, double val);
