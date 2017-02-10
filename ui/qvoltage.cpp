@@ -1,5 +1,7 @@
 #include "qvoltage.hpp"
 
+#include "qplotsettings.hpp"
+
 #include <QGroupBox>
 #include <QFormLayout>
 #include <QSplitter>
@@ -183,13 +185,10 @@ void QVoltageWidget::setupGUI() {
 }
 
 void QVoltageWidget::setupPlot(QCustomPlot& plot, const QString& name) {
-    plot.setInteraction(QCP::iRangeZoom, true);
-    plot.setInteraction(QCP::iRangeDrag, true);
-
-
-    plot.yAxis->axisRect()->setRangeZoom(Qt::Vertical);
-    plot.yAxis->axisRect()->setRangeDrag(Qt::Vertical);
-
+    connect(&plot, &QCustomPlot::mouseDoubleClick, [&plot] {
+        auto settings = new QPlotSettings(&plot);
+        settings->show();
+    });
     plot.xAxis->setAutoTicks(true);
     plot.xAxis->setAutoTickCount(5);
     plot.xAxis->setAutoTickLabels(true);
@@ -245,8 +244,6 @@ void QVoltageWidget::updateCell(const std::string& type) {
         updateGraph(*plot.graph(0), voltage);
         plot.xAxis->rescale();
         plot.xAxis2->rescale();
-        plot.yAxis->setRange( {0, plot.yAxis->range().upper} );
-        plot.yAxis2->setRange( {0, plot.yAxis2->range().upper} );
         plot.replot();
     }
     {
@@ -254,8 +251,6 @@ void QVoltageWidget::updateCell(const std::string& type) {
         updateGraph(*plot.graph(1), amperage);
         plot.xAxis->rescale();
         plot.xAxis2->rescale();
-        plot.yAxis->setRange( {0, plot.yAxis->range().upper} );
-        plot.yAxis2->setRange( {0, plot.yAxis2->range().upper} );
         plot.replot();
     }
 }

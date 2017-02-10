@@ -13,47 +13,8 @@ set(CMAKE_AUTOMOC ON)
 # to always look for includes there:
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-set(SOURCES
-    net/ctudcconn.cpp
-    ui/qconsole.cpp
-    ui/qfrequency.cpp
-    ui/qsettings.cpp
-    ui/qstatus.cpp
-    ui/qvoltage.cpp
-    ui/mainwindow.cpp
-    ui/qloopfreq.cpp
-    ui/qcontrol.cpp
-    ui/qmonitor.cpp
-    ui/qchambermonitor.cpp
-    ui/qchambertable.cpp
-    controllers/tdccontroller.cpp
-    controllers/expocontroller.cpp
-    controllers/voltagecontroller.cpp
-    configparser/appconfigparser.cpp
-    appsettings.cpp
-    main.cpp)
-
-set(HEADERS
-    net/ctudcconn.hpp
-    ui/qconsole.hpp
-    ui/qvoltage.hpp
-    ui/qsettings.hpp
-    ui/qcontrol.hpp
-    ui/mainwindow.hpp
-    ui/qfrequency.hpp
-    ui/qstatus.hpp
-    ui/qloopfreq.hpp
-    ui/qmonitor.hpp
-    ui/qchambermonitor.hpp
-    ui/qchambertable.hpp
-    controllers/tdccontroller.hpp
-    controllers/expocontroller.hpp
-    controllers/voltagecontroller.hpp
-    tdc/tdc.hpp
-    configparser/configparser.hpp
-    configparser/appconfigparser.hpp
-    appsettings.hpp)
-
+file(GLOB_RECURSE SOURCES
+        "*.cpp")
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 

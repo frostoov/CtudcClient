@@ -1,5 +1,7 @@
 #include "qmonitor.hpp"
 
+#include "qplotsettings.hpp"
+
 #include <trek/common/stringbuilder.hpp>
 
 #include <boost/filesystem.hpp>
@@ -153,11 +155,6 @@ static ostream& operator<<(ostream& stream, const system_clock::time_point& tp) 
 QCustomPlot* QMonitor::createMetaPlot(const QString& title, const QVector<QPair<QString, QColor>>& plotLabels, int ticks) {
     auto* plot = new QCustomPlot;
 
-    plot->setInteraction(QCP::iRangeZoom, true);
-    plot->setInteraction(QCP::iRangeDrag, true);
-    plot->yAxis->axisRect()->setRangeZoom(Qt::Vertical);
-    plot->yAxis->axisRect()->setRangeDrag(Qt::Vertical);
-
     plot->plotLayout()->insertRow(0);
     plot->plotLayout()->addElement(0, 0, new QCPPlotTitle(plot, title));
 
@@ -174,6 +171,10 @@ QCustomPlot* QMonitor::createMetaPlot(const QString& title, const QVector<QPair<
             plot->legend->setVisible(!plot->legend->visible());
             plot->replot();
         }
+    });
+    connect(plot, &QCustomPlot::mouseDoubleClick, this, [plot, this] {
+        auto settings = new QPlotSettings(plot);
+        settings->show();
     });
     for(int i = 0; i < plotLabels.size(); ++i) {
         auto& name = plotLabels.at(i).first;
